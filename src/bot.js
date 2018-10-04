@@ -1,7 +1,7 @@
 const rx = require('rx');
 const _ = require('underscore-plus');
 
-const Slack = require('slack-client');
+const { WebClient } = require('@slack/client');
 const SlackApiRx = require('./slack-api-rx');
 const TexasHoldem = require('./texas-holdem');
 const MessageHelpers = require('./message-helpers');
@@ -15,7 +15,7 @@ class Bot {
   //
   // token - An API token from the bot integration
   constructor(token) {
-    this.slack = new Slack(token, true, true);
+    this.slack = new WebClient(token);
     
     this.gameConfig = {};
     this.gameConfigParams = ['timeout'];
@@ -26,7 +26,7 @@ class Bot {
     rx.Observable.fromEvent(this.slack, 'open')
       .subscribe(() => this.onClientOpened());
 
-    this.slack.login();
+    //this.slack.login();
     this.respondToMessages();
   }
 
