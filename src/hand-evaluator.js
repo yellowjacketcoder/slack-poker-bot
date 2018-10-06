@@ -39,6 +39,9 @@ class HandEvaluator {
         winners.push(player);
         showdown.push(player);
       }
+      else if (player.isAllIn) {
+        showdown.push(player);
+      }
     }
 
     return {

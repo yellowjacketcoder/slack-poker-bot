@@ -17,7 +17,7 @@ class PotManager {
     this.pots = [];
     this.outcomes = [];
   }
-  
+
   // Public: Creates a new pot and assigns it as the current destination for
   // bets. This can occur at the start of a hand or at the end of a betting
   // round, when making side pots.
@@ -26,22 +26,22 @@ class PotManager {
   // amount - (Optional) The starting amount in the pot, defaults to 0
   //
   // Returns nothing
-  createPot(participants, amount=0) {
+  createPot(participants, amount = 0) {
     // Trim out any empty pots; this can occasionally occur when creating side
     // pots for multiple all-in players.
     if (this.currentPot && this.currentPot.amount === 0) {
       let index = this.pots.indexOf(this.currentPot);
       this.pots.splice(index, 1);
     }
-    
-    this.currentPot = { 
-      participants: participants, 
-      amount: amount 
+
+    this.currentPot = {
+      participants: participants,
+      amount: amount
     };
-    
+
     this.pots.push(this.currentPot);
   }
-  
+
   // Public: Resets state for the start of a betting round.
   //
   // Returns nothing
@@ -49,7 +49,7 @@ class PotManager {
     this.currentBet = 0;
     this.allInPlayers = [];
   }
-  
+
   // Public: Handles any post-round work, primarily the creation of side pots
   // for any players who went all-in during the round.
   //
@@ -67,10 +67,10 @@ class PotManager {
     for (let player of this.allInPlayers) {
       amountSetAside += this.createSidePot(player);
     }
-    
+
     mainPot.amount -= amountSetAside;
   }
-  
+
   // Public: Updates the current pot based on a player action.
   //
   // player - The acting player
@@ -79,22 +79,22 @@ class PotManager {
   // Returns nothing
   updatePotForAction(player, action) {
     switch (action.name) {
-    case 'fold':
-      this.removePlayerFromAllPots(player);
-      break;
-    case 'call':
-      // Calls don't specify an amount, but they are a wager nonetheless.
-      action.amount = this.currentBet;
-      this.updateChipsAndPot(player, action);
-      break;
-    case 'bet':
-    case 'raise':
-      this.correctInvalidBets(player, action);
-      this.currentBet = this.updateChipsAndPot(player, action);
-      break;
+      case 'fold':
+        this.removePlayerFromAllPots(player);
+        break;
+      case 'call':
+        // Calls don't specify an amount, but they are a wager nonetheless.
+        action.amount = this.currentBet;
+        this.updateChipsAndPot(player, action);
+        break;
+      case 'bet':
+      case 'raise':
+        this.correctInvalidBets(player, action);
+        this.currentBet = this.updateChipsAndPot(player, action);
+        break;
     }
   }
-  
+
   // Private: Creates a side pot for the given player.
   //
   // player - The player who went all-in during the last betting round
@@ -110,18 +110,18 @@ class PotManager {
     // We then remove this player from the side pot.
     let sidePotParticipants = _.without(this.currentPot.participants, player);
     let sidePotAmount = 0;
-    
+
     // The amount we place in the side pot is the difference in wagers,
     // multiplied by the number of callers.
     let potDelta = nextHighestWager - currentWager;
     if (potDelta > 0) {
       sidePotAmount = potDelta * sidePotParticipants.length;
     }
-    
+
     this.createPot(sidePotParticipants, sidePotAmount);
     return sidePotAmount;
   }
-  
+
   // Private: Given a wager, return the next highest wager from any player who
   // went all-in during the last betting round. If none is found, return the
   // current bet.
@@ -155,11 +155,11 @@ class PotManager {
     if (action.amount >= availableChips) {
       action.amount = availableChips;
     }
-    
+
     let wagerIncrease = action.amount - previousWager;
     player.chips -= wagerIncrease;
     this.currentPot.amount += wagerIncrease;
-    
+
     if (player.chips === 0) {
       this.allInPlayers.push(player);
     }
@@ -173,16 +173,26 @@ class PotManager {
   // board - An array of five community cards
   //
   // Returns nothing
-  endHandWithShowdown(slackWeb, slackRTM, playerHands, board) {
+  endHandWithShowdown(slackWeb, slackRTM, playerHands, board, showdownOrder) {
     let outcome = [];
     let showdown = [];
-    
+
     // Evaluate the main pot and side pots separately, as each pot has a unique
     // set of players eligible to win the hand.
     for (let pot of this.pots) {
       if (pot.amount === 0) continue;
 
-      pot.result = HandEvaluator.evaluateHands(pot.participants, playerHands, board);
+      //TODO sort participants with correct table order
+      let participants = _.filter(showdownOrder, p => {
+        for (let player of pot.participants) {
+          if (p.id == player.id) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      pot.result = HandEvaluator.evaluateHands(participants, playerHands, board);
       //this.handleOutcome(slackWeb, slackRTM, pot);
       outcome.push(pot.result);
       showdown = [...showdown, ...pot.result.showdown];
@@ -190,19 +200,18 @@ class PotManager {
 
     //Show players cards
     for (let player of _.uniq(showdown, 'id')) {
-      console.log(player, playerHands[player.id]);
       let message = `Player ${player.name} shows ${playerHands[player.id]}.`;
       slackRTM.sendMessage(message, this.channel);
     }
 
-    
+
     //Show winners messages
     for (let pot of this.pots) {
       if (pot.amount === 0) continue;
       this.handleOutcome(slackWeb, slackRTM, pot);
     }
 
-    
+
     // If there are multiple outcomes, push the array as a result. Otherwise,
     // just push the single result.
     if (outcome.length === 1) {
@@ -210,10 +219,10 @@ class PotManager {
     } else {
       this.outcomes.push(outcome);
     }
-    
+
     this.pots = [];
   }
-  
+
   // Private: End a hand without evaluating pocket cards.
   //
   // result - An object identifying the winning player
@@ -221,15 +230,15 @@ class PotManager {
   // Returns nothing
   endHand(slackWeb, slackRTM, result) {
     let outcome = [];
-    
+
     for (let pot of this.pots) {
       if (pot.amount === 0) continue;
-      
+
       pot.result = result;
       this.handleOutcome(slackWeb, slackRTM, pot);
       outcome.push(pot.result);
     }
-    
+
     if (outcome.length === 1) {
       this.outcomes.push(outcome[0]);
     } else {
@@ -237,7 +246,7 @@ class PotManager {
     }
     this.pots = [];
   }
-  
+
   // Private: Given a pot that has ended, display a message to the channel
   // declaring the winner(s) of that pot, the amount(s) won, and the winning
   // hand, if a showdown was required.
@@ -248,7 +257,7 @@ class PotManager {
   handleOutcome(slackWeb, slackRTM, pot) {
     let message = '';
     let result = pot.result;
-    
+
     if (result.isSplitPot) {
       _.each(result.winners, winner => {
         if (_.last(result.winners) !== winner) {
@@ -269,16 +278,16 @@ class PotManager {
       }
       result.winners[0].chips += pot.amount;
     }
-    
+
     slackRTM.sendMessage(message, this.channel);
   }
-  
+
   // Public: Returns the total number of chips in all pots. Primarily used for
   // testing.
   getTotalChips() {
     return _.reduce(this.pots, (total, pot) => total + pot.amount, 0);
   }
-  
+
   // Private: When a player folds, they are no longer eligible to win any pot.
   removePlayerFromAllPots(player) {
     for (let pot of this.pots) {
@@ -286,7 +295,7 @@ class PotManager {
       pot.participants.splice(index, 1);
     }
   }
-  
+
   // Private: Correct any irregular bets or raises.
   //
   // player - The player who bet or raise
@@ -302,12 +311,12 @@ class PotManager {
         this.currentBet * 2 :
         this.minimumBet;
     }
-    
+
     // If this raise was too small, set it to 2x the current bet.
     if (action.name === 'raise' && action.amount < this.currentBet * 2) {
       action.amount = this.currentBet * 2;
     }
-    
+
     if (action.amount > this.currentBet) {
       // If there are no players left in the hand with chips, and a player
       // raises, the raise is actually a call.

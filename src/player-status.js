@@ -16,7 +16,7 @@ class PlayerStatus {
   //                  provide additional formatting
   //
   // Returns nothing
-  static displayHandStatus(slackWeb, slackRTM, channel, players, actingPlayer,
+  static displayHandStatus(slackWeb, slackRTM, channel, players, board, actingPlayer,
     potManager, dealerButton, bigBlind, smallBlind, tableFormatter=`\`\`\``) {
     let table = [];
 
@@ -51,6 +51,9 @@ class PlayerStatus {
     }
 
     let handStatus = `${tableFormatter}${textTable(table)}${tableFormatter}`;
+    if (board.length > 0) {
+      handStatus += `\nCurrent board: ${board.toString()}`;
+    }
     let potBreakdown = '';
     
     for (let idx = 0; idx < potManager.pots.length; idx++) {

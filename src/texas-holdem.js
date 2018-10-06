@@ -227,7 +227,7 @@ class TexasHoldem {
 
       // Display player position and who's next to act before polling.
       PlayerStatus.displayHandStatus(this.slackWeb, this.slackRTM, this.channel,
-        this.players, player,
+        this.players, this.board, player,
         this.potManager, this.dealerButton,
         this.bigBlindIdx, this.smallBlindIdx,
         this.tableFormatter);
@@ -437,11 +437,12 @@ class TexasHoldem {
           //console.log('Showdown Order', PlayerOrder.determine(this.players, this.dealerButton, 'showdown'));
           //TODO if all in show end 
           //TODO if first after last player action, show hand
-          // let playersRemaining = _.filter(this.players, p => p.isInHand && p.isInRound);
-          // let currentIndex = playersRemaining.indexOf(result.lastPlayer);
-          // PlayerOrder.getNextPlayerIndex(currentIndex, playersRemaining);
+          let playersRemaining = _.filter(this.players, p => p.isInHand && p.isInRound);
+          let currentIndex = playersRemaining.indexOf(result.lastPlayer);
+          //let nextIndex = PlayerOrder.getNextPlayerIndex(currentIndex, playersRemaining);
+          let showdownOrder = PlayerOrder.determine(this.players, currentIndex, 'showdown');
 
-          this.potManager.endHandWithShowdown(this.slackWeb, this.slackRTM, this.playerHands, this.board);
+          this.potManager.endHandWithShowdown(this.slackWeb, this.slackRTM, this.playerHands, this.board, showdownOrder);
         } else {
           this.potManager.endHand(this.slackWeb, this.slackRTM, result);
         }
