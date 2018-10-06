@@ -131,7 +131,7 @@ class Bot {
       }, [])
       .flatMap(players => {
         this.isPolling = false;
-        this.addBotPlayers(players);
+        //this.addBotPlayers(players);
 
         let messagesInChannel = messages.where(e => e.channel === channel);
         return this.startGame(messagesInChannel, channel, players);
