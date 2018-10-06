@@ -173,7 +173,7 @@ class PotManager {
   // board - An array of five community cards
   //
   // Returns nothing
-  endHandWithShowdown(playerHands, board) {
+  endHandWithShowdown(slackWeb, slackRTM, playerHands, board) {
     let outcome = [];
     
     // Evaluate the main pot and side pots separately, as each pot has a unique
@@ -182,7 +182,7 @@ class PotManager {
       if (pot.amount === 0) continue;
       
       pot.result = HandEvaluator.evaluateHands(pot.participants, playerHands, board);
-      this.handleOutcome(pot);
+      this.handleOutcome(slackWeb, slackRTM, pot);
       outcome.push(pot.result);
     }
     
@@ -202,14 +202,14 @@ class PotManager {
   // result - An object identifying the winning player
   //
   // Returns nothing
-  endHand(result) {
+  endHand(slackWeb, slackRTM, result) {
     let outcome = [];
     
     for (let pot of this.pots) {
       if (pot.amount === 0) continue;
       
       pot.result = result;
-      this.handleOutcome(pot);
+      this.handleOutcome(slackWeb, slackRTM, pot);
       outcome.push(pot.result);
     }
     
@@ -228,7 +228,7 @@ class PotManager {
   // pot - The pot that has ended
   //
   // Returns nothing
-  handleOutcome(pot) {
+  handleOutcome(slackWeb, slackRTM, pot) {
     let message = '';
     let result = pot.result;
     
@@ -253,7 +253,7 @@ class PotManager {
       result.winners[0].chips += pot.amount;
     }
     
-    this.channel.send(message);
+    slackRTM.sendMessage(message, this.channel);
   }
   
   // Public: Returns the total number of chips in all pots. Primarily used for

@@ -1,4 +1,4 @@
-require('babel/register');
+require('babel-register');
 
 var rx = require('rx');
 var jimp = require('jimp');
@@ -36,7 +36,6 @@ describe('ImageHelpers', function() {
         jimp.read('./output/flop.png').then(img => {
           assert(img.bitmap.width === cardSize.width * 3);
           assert(img.bitmap.height === cardSize.height);
-          done();
         });
       });
 
@@ -47,7 +46,6 @@ describe('ImageHelpers', function() {
         jimp.read('./output/turn.png').then(img => {
           assert(img.bitmap.width === cardSize.width * 4);
           assert(img.bitmap.height === cardSize.height);
-          done();
         });
       });
 
@@ -61,6 +59,7 @@ describe('ImageHelpers', function() {
           done();
         });
       });
+      
     });
   });
 });

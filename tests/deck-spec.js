@@ -1,4 +1,4 @@
-require('babel/register');
+require('babel-register');
 
 var _ = require('underscore-plus');
 var assert = require('chai').assert;

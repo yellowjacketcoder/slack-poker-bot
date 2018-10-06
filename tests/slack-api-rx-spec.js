@@ -1,4 +1,4 @@
-require('babel/register');
+require('babel-register');
 
 var rx = require('rx');
 var _ = require('underscore-plus');

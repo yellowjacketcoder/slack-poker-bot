@@ -13,9 +13,9 @@ class PlayerInteraction {
   //
   // Returns an {Observable} that will `onNext` for each player that joins and
   // `onCompleted` when time expires or the max number of players join.
-  static pollPotentialPlayers(messages, channel, scheduler=rx.Scheduler.timeout, timeout=30, maxPlayers=10) {
+  static pollPotentialPlayers(messages, slackWeb, slackRTM, channel, scheduler=rx.Scheduler.timeout, timeout=10, maxPlayers=10) {
     let formatMessage = t => `Who wants to play? Respond with 'yes' in this channel in the next ${t} seconds.`;
-    let timeExpired = PlayerInteraction.postMessageWithTimeout(channel, formatMessage, scheduler, timeout);
+    let timeExpired = PlayerInteraction.postMessageWithTimeout(slackWeb, slackRTM, channel, formatMessage, scheduler, timeout);
 
     // Look for messages containing the word 'yes' and map them to a unique
     // user ID, constrained to `maxPlayers` number of players.
@@ -43,7 +43,7 @@ class PlayerInteraction {
   //
   // Returns an {Observable} indicating the action the player took. If time
   // expires, a 'timeout' action is returned.
-  static getActionForPlayer(messages, channel, player, previousActions,
+  static getActionForPlayer(slackWeb, slackRTM, messages, channel, player, previousActions,
     scheduler=rx.Scheduler.timeout, timeout=30) {
     let availableActions = PlayerInteraction.getAvailableActions(player, previousActions);
     let formatMessage = t => PlayerInteraction.buildActionMessage(player, availableActions, t);
@@ -51,10 +51,10 @@ class PlayerInteraction {
     let timeExpired = null;
     let expiredDisp = null;
     if (timeout > 0) {
-      timeExpired = PlayerInteraction.postMessageWithTimeout(channel, formatMessage, scheduler, timeout);
+      timeExpired = PlayerInteraction.postMessageWithTimeout(slackWeb, slackRTM, channel, formatMessage, scheduler, timeout);
       expiredDisp = timeExpired.connect();
     } else {
-      channel.send(formatMessage(0));
+      slackRTM.sendMessage(formatMessage(0), channel);
       timeExpired = rx.Observable.never();
       expiredDisp = rx.Disposable.empty;
     }
@@ -94,15 +94,33 @@ class PlayerInteraction {
   // timeout - The duration of the message, in seconds
   //
   // Returns an {Observable} sequence that signals expiration of the message
-  static postMessageWithTimeout(channel, formatMessage, scheduler, timeout) {
-    let timeoutMessage = channel.send(formatMessage(timeout));
+  static postMessageWithTimeout(slackWeb, slackRTM, channel, formatMessage, scheduler, timeout) {
+    let ts = false;
+    slackRTM.sendMessage(formatMessage(timeout), channel)
+    .then((result) => {
+      ts = result.ts;
+    })
+    .catch(console.error);
 
     let timeExpired = rx.Observable.timer(0, 1000, scheduler)
-      .take(timeout + 1)
-      .do((x) => timeoutMessage.updateMessage(formatMessage(`${timeout - x}`)))
-      .publishLast();
+    .take(timeout + 1)
+    .do((x) => { 
+      if (ts) {
+        slackWeb.chat.update({
+          channel: channel, 
+          ts: ts,
+          text: formatMessage(`${timeout - x}`)
+        })
+        .then((result) => {
+          ts = result.ts;
+        })
+        .catch(console.error);  
+      }
+    })
+    .publishLast();
 
     return timeExpired;
+
   }
 
   // Private: Builds up a formatted countdown message containing the available

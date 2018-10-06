@@ -17,8 +17,9 @@ class TexasHoldem {
   // channel - The channel where the game will be played
   // players - The players participating in the game
   // scheduler - (Optional) The scheduler to use for timing events
-  constructor(slack, messages, channel, players, scheduler=rx.Scheduler.timeout) {
-    this.slack = slack;
+  constructor(slackWeb, slackRTM, messages, channel, players, scheduler = rx.Scheduler.timeout) {
+    this.slackWeb = slackWeb;
+    this.slackRTM = slackRTM;
     this.messages = messages;
     this.channel = channel;
     this.players = players;
@@ -45,7 +46,7 @@ class TexasHoldem {
   //                    the end of one hand and the start of another
   //
   // Returns an {Observable} that signals completion of the game
-  start(playerDms, dealerButton=null, timeBetweenHands=5000) {
+  start(playerDms, dealerButton = null, timeBetweenHands = 5000) {
     this.isRunning = true;
     this.playerDms = playerDms;
     this.dealerButton = dealerButton === null ?
@@ -58,7 +59,7 @@ class TexasHoldem {
       .repeat()
       .takeUntil(this.gameEnded)
       .subscribe();
-      
+
     return this.gameEnded;
   }
 
@@ -67,12 +68,12 @@ class TexasHoldem {
   // Returns nothing
   quit(winner) {
     if (winner) {
-      this.channel.send(`Congratulations ${winner.name}, you've won!`);
+      this.slackRTM.sendMessage(`Congratulations ${winner.name}, you've won!`, this.channel);
     }
-    
+
     this.gameEnded.onNext(winner);
     this.gameEnded.onCompleted();
-    
+
     this.isRunning = false;
   }
 
@@ -112,7 +113,7 @@ class TexasHoldem {
         this.flop(handEnded);
       }
     });
-    
+
     return handEnded;
   }
 
@@ -126,10 +127,10 @@ class TexasHoldem {
       player.isAllIn = false;
       player.isBettor = false;
     }
-    
+
     let participants = _.filter(this.players, p => p.isInHand);
     this.potManager.createPot(participants);
-    
+
     this.smallBlindIdx = PlayerOrder.getNextPlayerIndex(this.dealerButton, this.players);
     this.bigBlindIdx = PlayerOrder.getNextPlayerIndex(this.smallBlindIdx, this.players);
   }
@@ -223,11 +224,11 @@ class TexasHoldem {
   // timeToPause - (Optional) The time to wait before polling, in ms
   //
   // Returns an {Observable} containing the player's action
-  deferredActionForPlayer(player, previousActions, roundEnded, timeToPause=1000) {
+  deferredActionForPlayer(player, previousActions, roundEnded, timeToPause = 1000) {
     return rx.Observable.defer(() => {
 
       // Display player position and who's next to act before polling.
-      PlayerStatus.displayHandStatus(this.channel,
+      PlayerStatus.displayHandStatus(this.slackWeb, this.slackRTM, this.channel,
         this.players, player,
         this.potManager, this.dealerButton,
         this.bigBlindIdx, this.smallBlindIdx,
@@ -236,10 +237,10 @@ class TexasHoldem {
       return rx.Observable.timer(timeToPause, this.scheduler).flatMap(() => {
         this.actingPlayer = player;
 
-        return PlayerInteraction.getActionForPlayer(this.messages, this.channel,
+        return PlayerInteraction.getActionForPlayer(this.slackWeb, this.slackRTM, this.messages, this.channel,
           player, previousActions, this.scheduler, this.timeout)
           .do(action => this.onPlayerAction(player, action, previousActions, roundEnded));
-        });
+      });
     });
   }
 
@@ -254,7 +255,7 @@ class TexasHoldem {
   // postingBlind - (Optional) String describing the blind, or empty
   //
   // Returns nothing
-  onPlayerAction(player, action, previousActions, roundEnded, postingBlind='') {
+  onPlayerAction(player, action, previousActions, roundEnded, postingBlind = '') {
     this.potManager.updatePotForAction(player, action);
     this.postActionToChannel(player, action, postingBlind);
 
@@ -264,19 +265,19 @@ class TexasHoldem {
 
     // All of these methods assume that the action is valid.
     switch (action.name) {
-    case 'fold':
-      this.onPlayerFolded(player, roundEnded);
-      break;
-    case 'check':
-      this.onPlayerChecked(player, roundEnded);
-      break;
-    case 'call':
-      this.onPlayerCalled(player, roundEnded);
-      break;
-    case 'bet':
-    case 'raise':
-      this.onPlayerBet(player, roundEnded);
-      break;
+      case 'fold':
+        this.onPlayerFolded(player, roundEnded);
+        break;
+      case 'check':
+        this.onPlayerChecked(player, roundEnded);
+        break;
+      case 'call':
+        this.onPlayerCalled(player, roundEnded);
+        break;
+      case 'bet':
+      case 'raise':
+        this.onPlayerBet(player, roundEnded);
+        break;
     }
   }
 
@@ -360,13 +361,13 @@ class TexasHoldem {
       currentBettor.isBettor = false;
       currentBettor.hasOption = false;
     }
-    
+
     player.isBettor = true;
     if (player.chips === 0) {
       player.isAllIn = true;
     }
-    
-    let playersWhoCanCall = _.filter(this.players, 
+
+    let playersWhoCanCall = _.filter(this.players,
       p => p.isInHand && !p.isBettor && p.chips > 0);
     if (playersWhoCanCall.length === 0) {
       let result = { isHandComplete: false };
@@ -407,7 +408,7 @@ class TexasHoldem {
     this.deck.drawCard(); // Burn one
     let turn = this.deck.drawCard();
     this.board.push(turn);
-    
+
     this.postBoard('turn').subscribe(() => {
       this.doBettingRound('turn').subscribe(result => {
         if (result.isHandComplete) {
@@ -434,15 +435,15 @@ class TexasHoldem {
       this.doBettingRound('river').subscribe(result => {
         // Still no winner? Time for a showdown.
         if (!result.isHandComplete) {
-          this.potManager.endHandWithShowdown(this.playerHands, this.board);
+          this.potManager.endHandWithShowdown(this.slackWeb, this.slackRTM, this.playerHands, this.board);
         } else {
-          this.potManager.endHand(result);
+          this.potManager.endHand(this.slackWeb, this.slackRTM, result);
         }
         this.onHandEnded(handEnded);
       });
     });
   }
-  
+
   // Private: Move the dealer button and see if the game has ended.
   //
   // handEnded - A {Subject} that is used to end the hand
@@ -453,7 +454,7 @@ class TexasHoldem {
 
     handEnded.onNext(true);
     handEnded.onCompleted();
-    
+
     this.checkForGameWinner();
   }
 
@@ -487,14 +488,7 @@ class TexasHoldem {
 
       if (!player.isBot) {
         let dm = this.playerDms[player.id];
-        if (!dm) {
-          SlackApiRx.getOrOpenDm.subscribe(({dm}) => {
-            this.playerDms[player.id] = dm;
-            dm.send(`Your hand is: ${this.playerHands[player.id]}`);
-          });
-        } else {
-          dm.send(`Your hand is: ${this.playerHands[player.id]}`);
-        }
+        this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);
       } else {
         player.holeCards = this.playerHands[player.id];
       }
@@ -508,37 +502,11 @@ class TexasHoldem {
   //
   // Returns an {Observable} indicating completion
   postBoard(round) {
-    return ImageHelpers.createBoardImage(this.board)
-      .timeout(12000)
-      .flatMap(url => {
-        let message = {
-          as_user: true,
-          token: this.slack.token,
-        };
+    let message = `Dealing the ${round}:\n${this.board.toString()}`;
+    this.slackRTM.sendMessage(message, this.channel);
 
-        message.attachments = [{
-          title: `Dealing the ${round}:`,
-          fallback: this.board.toString(),
-          text: this.board.toString(),
-          color: 'good',
-          image_url: url
-        }];
-
-        this.channel.postMessage(message);
-
-        // NB: Since we don't have a callback for the message arriving, we're
-        // just going to wait a second before continuing.
-        return rx.Observable.timer(2000, this.scheduler);
-      })
-      .take(1)
-      .catch(() => {
-        console.error('Creating board image timed out');
-        let message = `Dealing the ${round}:\n${this.board.toString()}`;
-        this.channel.send(message);
-        
-        return rx.Observable.timer(1000, this.scheduler);
-      });
-  }
+    return rx.Observable.timer(1000, this.scheduler);
+}
 
   // Private: Posts a message to the channel describing a player's action.
   //
@@ -547,7 +515,7 @@ class TexasHoldem {
   // postingBlind - (Optional) String describing the blind, or empty
   //
   // Returns nothing
-  postActionToChannel(player, action, postingBlind='') {
+  postActionToChannel(player, action, postingBlind = '') {
     let message = postingBlind === '' ?
       `${player.name} ${action.name}s` :
       `${player.name} posts ${postingBlind} of`;
@@ -559,7 +527,7 @@ class TexasHoldem {
     else
       message += '.';
 
-    this.channel.send(message);
+    this.slackRTM.sendMessage(message, this.channel);
   }
 
   // Private: Checks if all player actions adhered to some condition.

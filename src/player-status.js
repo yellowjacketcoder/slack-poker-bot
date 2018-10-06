@@ -16,7 +16,7 @@ class PlayerStatus {
   //                  provide additional formatting
   //
   // Returns nothing
-  static displayHandStatus(channel, players, actingPlayer,
+  static displayHandStatus(slackWeb, slackRTM, channel, players, actingPlayer,
     potManager, dealerButton, bigBlind, smallBlind, tableFormatter=`\`\`\``) {
     let table = [];
 
@@ -65,7 +65,7 @@ class PlayerStatus {
     }
     
     handStatus = `${handStatus}\n${potBreakdown}`;
-    channel.send(handStatus);
+    slackRTM.sendMessage(handStatus, channel);
   }
 }
 
