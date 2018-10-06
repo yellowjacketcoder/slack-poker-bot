@@ -3,10 +3,8 @@ const _ = require('underscore-plus');
 
 const Deck = require('./deck');
 const PotManager = require('./pot-manager');
-const SlackApiRx = require('./slack-api-rx');
 const PlayerOrder = require('./player-order');
 const PlayerStatus = require('./player-status');
-const ImageHelpers = require('./image-helpers');
 const PlayerInteraction = require('./player-interaction');
 
 class TexasHoldem {
@@ -304,7 +302,7 @@ class TexasHoldem {
       };
       roundEnded.onNext(result);
     } else if (everyoneActed) {
-      let result = { isHandComplete: false };
+      let result = { isHandComplete: false, lastPlayer: player };
       roundEnded.onNext(result);
     }
   }
@@ -322,7 +320,7 @@ class TexasHoldem {
     let everyoneHadATurn = PlayerOrder.isLastToAct(player, this.orderedPlayers);
 
     if (everyoneChecked && everyoneHadATurn) {
-      let result = { isHandComplete: false };
+      let result = { isHandComplete: false, lastPlayer: player };
       roundEnded.onNext(result);
     }
   }
@@ -340,7 +338,7 @@ class TexasHoldem {
     let everyoneHadATurn = PlayerOrder.isLastToAct(player, this.orderedPlayers);
 
     if (everyoneCalled && everyoneHadATurn) {
-      let result = { isHandComplete: false };
+      let result = { isHandComplete: false, lastPlayer: player };
       roundEnded.onNext(result);
     }
 
@@ -370,7 +368,7 @@ class TexasHoldem {
     let playersWhoCanCall = _.filter(this.players,
       p => p.isInHand && !p.isBettor && p.chips > 0);
     if (playersWhoCanCall.length === 0) {
-      let result = { isHandComplete: false };
+      let result = { isHandComplete: false, lastPlayer: player };
       roundEnded.onNext(result);
     }
   }
@@ -435,6 +433,14 @@ class TexasHoldem {
       this.doBettingRound('river').subscribe(result => {
         // Still no winner? Time for a showdown.
         if (!result.isHandComplete) {
+          // console.log('Showdown Last', result.lastPlayer);
+          //console.log('Showdown Order', PlayerOrder.determine(this.players, this.dealerButton, 'showdown'));
+          //TODO if all in show end 
+          //TODO if first after last player action, show hand
+          // let playersRemaining = _.filter(this.players, p => p.isInHand && p.isInRound);
+          // let currentIndex = playersRemaining.indexOf(result.lastPlayer);
+          // PlayerOrder.getNextPlayerIndex(currentIndex, playersRemaining);
+
           this.potManager.endHandWithShowdown(this.slackWeb, this.slackRTM, this.playerHands, this.board);
         } else {
           this.potManager.endHand(this.slackWeb, this.slackRTM, result);
@@ -506,7 +512,7 @@ class TexasHoldem {
     this.slackRTM.sendMessage(message, this.channel);
 
     return rx.Observable.timer(1000, this.scheduler);
-}
+  }
 
   // Private: Posts a message to the channel describing a player's action.
   //

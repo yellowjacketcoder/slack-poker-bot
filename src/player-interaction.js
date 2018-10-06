@@ -132,7 +132,7 @@ class PlayerInteraction {
   //
   // Returns the formatted string
   static buildActionMessage(player, availableActions, timeRemaining) {
-    let message = `${player.name}, it's your turn. Respond with:\n`;
+    let message = (player.isBot?`${player.name}`:`<@${player.id}>`) + `, it's your turn. Respond with:\n`;
     for (let action of availableActions) {
       message += `*(${action.charAt(0).toUpperCase()})${action.slice(1)}*\t`;
     }

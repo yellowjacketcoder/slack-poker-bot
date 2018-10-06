@@ -175,16 +175,33 @@ class PotManager {
   // Returns nothing
   endHandWithShowdown(slackWeb, slackRTM, playerHands, board) {
     let outcome = [];
+    let showdown = [];
     
     // Evaluate the main pot and side pots separately, as each pot has a unique
     // set of players eligible to win the hand.
     for (let pot of this.pots) {
       if (pot.amount === 0) continue;
-      
+
       pot.result = HandEvaluator.evaluateHands(pot.participants, playerHands, board);
-      this.handleOutcome(slackWeb, slackRTM, pot);
+      //this.handleOutcome(slackWeb, slackRTM, pot);
       outcome.push(pot.result);
+      showdown = [...showdown, ...pot.result.showdown];
     }
+
+    //Show players cards
+    for (let player of _.uniq(showdown, 'id')) {
+      console.log(player, playerHands[player.id]);
+      let message = `Player ${player.name} shows ${playerHands[player.id]}.`;
+      slackRTM.sendMessage(message, this.channel);
+    }
+
+    
+    //Show winners messages
+    for (let pot of this.pots) {
+      if (pot.amount === 0) continue;
+      this.handleOutcome(slackWeb, slackRTM, pot);
+    }
+
     
     // If there are multiple outcomes, push the array as a result. Otherwise,
     // just push the single result.

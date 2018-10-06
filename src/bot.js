@@ -2,7 +2,6 @@ const rx = require('rx');
 const _ = require('underscore-plus');
 
 const { RTMClient, WebClient } = require('@slack/client');
-const SlackApiRx = require('./slack-api-rx');
 const TexasHoldem = require('./texas-holdem');
 const MessageHelpers = require('./message-helpers');
 const PlayerInteraction = require('./player-interaction');
