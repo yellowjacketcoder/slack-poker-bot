@@ -162,10 +162,13 @@ class Bot {
       e.text.toLowerCase().match(/quit game/))
       .take(1)
       .subscribe(e => {
-        // TODO: Should poll players to make sure they all want to quit.
-        let player = this.slackRTM.getUserByID(e.user);
-        this.slackRTM.sendMessage(`${player.name} has decided to quit the game. The game will end after this hand.`, channel);
-        game.quit();
+        this.slackWeb.users.info({ user: e.user })
+          .then((result) => {
+            let user = result.user;
+            this.slackRTM.sendMessage(`${user.name} has decided to quit the game. The game will end after this hand.`, channel);
+            game.quit();
+          })
+          .catch(console.error);
       });
 
 
