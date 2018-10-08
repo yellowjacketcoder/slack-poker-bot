@@ -23,7 +23,7 @@ class TexasHoldem {
     this.players = players;
     this.scheduler = scheduler;
 
-    this.smallBlind = 1;
+    this.smallBlind = 4;
     this.bigBlind = this.smallBlind * 2;
     this.potManager = new PotManager(this.channel, players, this.smallBlind);
     this.gameEnded = new rx.Subject();
