@@ -21,10 +21,21 @@ class Bot {
       timeout: 45, 
       maxplayers: 25, 
       start_game_timeout: 60, 
-      bots: 0
+      bots: 0,
+      smallblind: 4,
+      initialstash: 20000
     };
 
-    this.gameConfigParams = ['timeout', 'maxplayers', 'start_game_timeout', 'bots'];
+    this.gameConfigParams = ['timeout', 'maxplayers', 'start_game_timeout', 'bots', 'smallblind', 'initialstash'];
+
+    this.gameConfigDescs = {
+      timeout: 'How long to wait for players to make each move. Set to 0 to wait forever. (default 45)',
+      maxplayers: 'Maximum players per table. Defaults to 25',
+      start_game_timeout: 'How many seconds to wait for players to sign up before starting the game. (default 60s)',
+      bots: 'Set this to 1 to include autobot players (for testing)',
+      smallblind: 'Initial small blind',
+      initialstash: 'Starting value of chips for each player'
+    }
   }
 
   // Public: Brings this bot online and starts handling messages sent to it.
@@ -51,6 +62,7 @@ class Bot {
 
     disp.add(this.handleDealGameMessages(messages, atMentions));
     disp.add(this.handleConfigMessages(atMentions));
+    //disp.add(this.handleEmptyConfigMessages(atMentions));
     disp.add(this.handleHelpMessages(atMentions));
 
     return disp;
@@ -80,6 +92,17 @@ class Bot {
       .subscribe();
   }
 
+
+  sendConfigErrorMessage(key) {
+    let message = `Unknown configuration option ${key}.\n\nValid options are:\n\`\`\``;
+    for (let option in this.gameConfig) {
+      let desc = this.gameConfigDescs[option];
+      message = message + `${option}: ${desc}\n`;
+    }
+    message = message + '```';
+    this.slackRTM.sendMessage(message, e.channel);
+  }
+  
   // Private: Looks for messages directed at the bot that contain the word
   // "config" and have valid parameters. When found, set the parameter.
   //
@@ -94,9 +117,32 @@ class Bot {
         e.text.replace(/(\w*)=(\d*)/g, (match, key, value) => {
           if (this.gameConfigParams.indexOf(key) > -1 && value) {
             this.gameConfig[key] = value;
-            this.slackRTM.sendMessage(`Game ${key} has been set to ${value}.`, e.channel);
+            this.slackRTM.sendMessage(`Game config ${key} has been set to ${value}.`, e.channel);
+          }
+          else {
+            let message = `Unknown configuration option ${key}.\n\nValid options are:\n\`\`\``;
+            for (let option in this.gameConfig) {
+              let desc = this.gameConfigDescs[option];
+              message = message + `${option}: ${desc}\n`;
+            }
+            message = message + '```';
+            this.slackRTM.sendMessage(message, e.channel);
           }
         });
+      });
+  }
+
+  // Private: Looks for messages directed at the bot that contain the word
+  // "config" but nothing else.
+  //
+  // atMentions - An {Observable} representing messages directed at the bot
+  //
+  // Returns a {Disposable} that will end this subscription
+  handleEmptyConfigMessages(atMentions) {
+    return atMentions
+      .where(e => e.text && e.text.toLowerCase().includes('config'))
+      .subscribe(e => {
+        this.sendConfigErrorMessage("<null>");
       });
   }
 
@@ -111,6 +157,7 @@ class Bot {
       .where(e => e.text && e.text.toLowerCase().match(/\bhelp\b/))
       .subscribe(e => {
         this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " deal` to start new game of Texas Hold'em", e.channel);
+        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " config <key>=<value>` to adjust settings before starting a game", e.channel);
       });
   }
 
@@ -162,7 +209,8 @@ class Bot {
     this.slackRTM.sendMessage(`We've got ${players.length} players, let's start the game.`, channel);
     this.isGameRunning = true;
 
-    let game = new TexasHoldem(this.slackWeb, this.slackRTM, messages, channel, players);
+    let game = new TexasHoldem(this.slackWeb, this.slackRTM, messages, channel, players, this.gameConfig);
+    // TODO: clean this up?
     _.extend(game, this.gameConfig);
 
     // Listen for messages directed at the bot containing 'quit game.'
