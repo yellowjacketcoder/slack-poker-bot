@@ -26,15 +26,13 @@ class Bot {
       initialstash: 20000
     };
 
-    this.gameConfigParams = ['timeout', 'maxplayers', 'start_game_timeout', 'bots', 'smallblind', 'initialstash'];
-
     this.gameConfigDescs = {
-      timeout: 'How long to wait for players to make each move. Set to 0 to wait forever. (default 45)',
-      maxplayers: 'Maximum players per table. Defaults to 25',
-      start_game_timeout: 'How many seconds to wait for players to sign up before starting the game. (default 60s)',
-      bots: 'Set this to 1 to include autobot players (for testing)',
-      smallblind: 'Initial small blind',
-      initialstash: 'Starting value of chips for each player'
+      timeout: `How long to wait for players to make each move. Set to 0 to wait forever. (default ${this.gameConfig.timeout})`,
+      maxplayers: `Maximum players per table. (default ${this.gameConfig.maxplayers})`,
+      start_game_timeout: `How many seconds to wait for players to sign up before starting the game. (default ${this.gameConfig.start_game_timeout})`,
+      bots: `Set this to 1 to include autobot players for testing (default ${this.gameConfig.bots})`,
+      smallblind: `Initial small blind. (default ${this.gameConfig.smallblind})`,
+      initialstash: `Starting value of chips for each player. (default ${this.gameConfig.initialstash})`
     }
   }
 
@@ -61,8 +59,8 @@ class Bot {
     let disp = new rx.CompositeDisposable();
 
     disp.add(this.handleDealGameMessages(messages, atMentions));
-    disp.add(this.handleConfigMessages(atMentions));
-    //disp.add(this.handleEmptyConfigMessages(atMentions));
+    disp.add(this.handleSetConfigMessages(atMentions));
+    disp.add(this.handleGetConfigMessages(atMentions));
     disp.add(this.handleHelpMessages(atMentions));
 
     return disp;
@@ -94,14 +92,7 @@ class Bot {
 
 
   sendConfigErrorMessage(key) {
-    let message = `Unknown configuration option ${key}.\n\nValid options are:\n\`\`\``;
-    for (let option in this.gameConfig) {
-      let desc = this.gameConfigDescs[option];
-      message = message + `${option}: ${desc}\n`;
-    }
-    message = message + '```';
-    this.slackRTM.sendMessage(message, e.channel);
-  }
+   }
   
   // Private: Looks for messages directed at the bot that contain the word
   // "config" and have valid parameters. When found, set the parameter.
@@ -109,13 +100,13 @@ class Bot {
   // atMentions - An {Observable} representing messages directed at the bot
   //
   // Returns a {Disposable} that will end this subscription
-  handleConfigMessages(atMentions) {
+  handleSetConfigMessages(atMentions) {
     return atMentions
       .where(e => e.text && e.text.toLowerCase().includes('config'))
       .subscribe(e => {
 
         e.text.replace(/(\w*)=(\d*)/g, (match, key, value) => {
-          if (this.gameConfigParams.indexOf(key) > -1 && value) {
+          if (key in this.gameConfig && value) {
             this.gameConfig[key] = value;
             this.slackRTM.sendMessage(`Game config ${key} has been set to ${value}.`, e.channel);
           }
@@ -138,11 +129,16 @@ class Bot {
   // atMentions - An {Observable} representing messages directed at the bot
   //
   // Returns a {Disposable} that will end this subscription
-  handleEmptyConfigMessages(atMentions) {
+  handleGetConfigMessages(atMentions) {
     return atMentions
       .where(e => e.text && e.text.toLowerCase().includes('config'))
       .subscribe(e => {
-        this.sendConfigErrorMessage("<null>");
+        let message = `Current configuration values\n\`\`\``;
+        for (let option in this.gameConfig) {
+          message = message + `${option}: ${this.gameConfig[option]}\n`;
+        }
+        message = message + '```';
+        this.slackRTM.sendMessage(message, e.channel);
       });
   }
 
