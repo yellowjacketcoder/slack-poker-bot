@@ -6,6 +6,7 @@ const PotManager = require('./pot-manager');
 const PlayerOrder = require('./player-order');
 const PlayerStatus = require('./player-status');
 const PlayerInteraction = require('./player-interaction');
+const ImageHelpers = require('./image-helpers');
 
 class TexasHoldem {
   // Public: Creates a new game instance.
