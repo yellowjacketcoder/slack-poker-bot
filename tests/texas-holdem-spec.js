@@ -27,6 +27,15 @@ describe('TexasHoldem', function() {
       sendMessage: async function() { return { ts: false} }
     };
 
+    let gameConfig = { 
+      timeout: 45, 
+      maxplayers: 25, 
+      start_game_timeout: 60, 
+      bots: 0,
+      smallblind: 4,
+      initialstash: 400
+    };
+      
     players = [
       { id: 1, name: 'Phil Ivey' },
       { id: 2, name: 'Doyle Brunson' },

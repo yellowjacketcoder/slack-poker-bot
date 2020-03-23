@@ -29,9 +29,10 @@ class TexasHoldem {
     this.potManager = new PotManager(this.channel, players, this.smallBlind);
     this.gameEnded = new rx.Subject();
 
-    // Each player starts with 100 big blinds.
+    // Each player starts with initial stash
     for (let player of this.players) {
       player.chips = this.bigBlind * 100;
+      //gameConfig.initialStash;
     }
   }
 
