@@ -8,10 +8,9 @@ var Card = require('../src/card');
 var TexasHoldem = require('../src/texas-holdem');
 
 describe('TexasHoldem', function() {
-  var game, slack, messages, channel, scheduler, players, playerDms;
+  var game, slackWeb, slackRTM, messages, channel, scheduler, players, playerDms;
 
   beforeEach(function() {
-    slack = { token: 0xDEADBEEF };
     messages = new rx.Subject();
     channel = {
       send: function(message) {
@@ -21,6 +20,13 @@ describe('TexasHoldem', function() {
     };
     
     scheduler = new rx.HistoricalScheduler();
+ 
+    // mock out slack objects
+    slackWeb = { token: 0xDEADBEEF };
+    slackRTM = {
+      sendMessage: async function() { return { ts: false} }
+    };
+
     players = [
       { id: 1, name: 'Phil Ivey' },
       { id: 2, name: 'Doyle Brunson' },
@@ -29,7 +35,7 @@ describe('TexasHoldem', function() {
       { id: 5, name: 'Chip Reese' }
     ];
 
-    game = new TexasHoldem(slack, messages, channel, players, scheduler);
+    game = new TexasHoldem(slackWeb, slackRTM, messages, channel, players, scheduler);
     var emptyDm = { send: function() { /* no-op */ } };
     playerDms = { 1: emptyDm, 2: emptyDm, 3: emptyDm, 4: emptyDm, 5: emptyDm };
 
