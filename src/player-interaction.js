@@ -7,13 +7,13 @@ class PlayerInteraction {
   //
   // messages - An {Observable} representing new messages sent to the channel
   // channel - The {Channel} object, used for posting messages
-  // scheduler - (Optional) The scheduler to use for timing events
   // timeout - (Optional) The amount of time to conduct polling, in seconds
   // maxPlayers - (Optional) The maximum number of players to allow
+  // scheduler - (Optional) The scheduler to use for timing events
   //
   // Returns an {Observable} that will `onNext` for each player that joins and
   // `onCompleted` when time expires or the max number of players join.
-  static pollPotentialPlayers(messages, slackWeb, slackRTM, channel, scheduler=rx.Scheduler.timeout, timeout=30, maxPlayers=10) {
+  static pollPotentialPlayers(messages, slackWeb, slackRTM, channel, timeout=30, maxPlayers=10, scheduler=rx.Scheduler.timeout) {
     let formatMessage = t => `Who wants to play? Respond with 'yes' in this channel in the next ${t} seconds.`;
     let timeExpired = PlayerInteraction.postMessageWithTimeout(slackWeb, slackRTM, channel, formatMessage, scheduler, timeout);
 

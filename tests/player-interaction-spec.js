@@ -21,11 +21,17 @@ describe('PlayerInteraction', function() {
         }
       };
       scheduler = new rx.HistoricalScheduler();
+      
+      // mock out slack objects
+      slackWeb = { token: 0xDEADBEEF };
+      slackRTM = {
+        sendMessage: async function() { return { ts: false} }
+      };
       players = [];
     });
 
     it("should add players when they respond with 'yes'", function() {
-      PlayerInteraction.pollPotentialPlayers(messages, channel, scheduler)
+      PlayerInteraction.pollPotentialPlayers(messages, slackWeb, slackRTM, channel, 5, 10, scheduler)
         .subscribe(function(userId) { players.push(userId); });
 
       messages.onNext({
@@ -49,7 +55,7 @@ describe('PlayerInteraction', function() {
     });
 
     it('should not add players more than once', function() {
-      PlayerInteraction.pollPotentialPlayers(messages, channel, scheduler)
+      PlayerInteraction.pollPotentialPlayers(messages, slackWeb, slackRTM, channel, 5, 10, scheduler)
         .subscribe(function(userId) { players.push(userId); });
 
       messages.onNext({
@@ -67,7 +73,7 @@ describe('PlayerInteraction', function() {
     });
 
     it('should stop polling when the maximum number of players is reached', function() {
-      PlayerInteraction.pollPotentialPlayers(messages, channel, scheduler, 10, 2)
+      PlayerInteraction.pollPotentialPlayers(messages, slackWeb, slackRTM, channel, 10, 2, scheduler)
         .subscribe(function(userId) { players.push(userId); });
 
       messages.onNext({user: 'Stu Ungar', text: 'Yes'});
@@ -80,7 +86,7 @@ describe('PlayerInteraction', function() {
     });
 
     it('should stop polling when time expires', function() {
-      PlayerInteraction.pollPotentialPlayers(messages, channel, scheduler, 5)
+      PlayerInteraction.pollPotentialPlayers(messages, slackWeb, slackRTM, channel, 5, 10, scheduler)
         .subscribe(function(userId) { players.push(userId); });
 
       messages.onNext({user: 'Chris Ferguson', text: 'Yes'});

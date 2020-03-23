@@ -17,8 +17,14 @@ class Bot {
     this.slackWeb = new WebClient(token);
     this.slackRTM = new RTMClient(token);
 
-    this.gameConfig = {};
-    this.gameConfigParams = ['timeout'];
+    this.gameConfig = { 
+      timeout: 45, 
+      maxplayers: 25, 
+      start_game_timeout: 60, 
+      bots: 0
+    };
+
+    this.gameConfigParams = ['timeout', 'maxplayers', 'start_game_timeout', 'bots'];
   }
 
   // Public: Brings this bot online and starts handling messages sent to it.
@@ -118,12 +124,12 @@ class Bot {
   pollPlayersForGame(messages, channel) {
     this.isPolling = true;
 
-    return PlayerInteraction.pollPotentialPlayers(messages, this.slackWeb, this.slackRTM, channel)
+    return PlayerInteraction.pollPotentialPlayers(messages, this.slackWeb, this.slackRTM, channel, this.gameConfig.start_game_timeout, this.gameConfig.maxplayers)
       .reduce((players, id) => {
         this.slackWeb.users.info({ user: id })
           .then((result) => {
             let user = result.user;
-            this.slackRTM.sendMessage(`${user.name} has joined the game.`, channel);
+            this.slackRTM.sendMessage(`@${user.name} has joined the game.`, channel);
             players.push({ id: user.id, name: user.name });
           })
           .catch(console.error);
@@ -131,7 +137,9 @@ class Bot {
       }, [])
       .flatMap(players => {
         this.isPolling = false;
-        //this.addBotPlayers(players);
+        if (this.gameConfig.bots != 0) {
+          this.addBotPlayers(players);
+        }
 
         let messagesInChannel = messages.where(e => e.channel === channel);
         return this.startGame(messagesInChannel, channel, players);
