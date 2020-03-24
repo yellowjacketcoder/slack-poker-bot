@@ -56,8 +56,8 @@ class TexasHoldem {
     rx.Observable.return(true)
       .flatMap(() => this.playHand()
         .flatMap(() => rx.Observable.timer(timeBetweenHands, this.scheduler)))
-      .repeat()
-      .takeUntil(this.gameEnded)
+      //.repeat()
+      //.takeUntil(this.gameEnded)
       .subscribe();
 
     return this.gameEnded;

@@ -20,8 +20,8 @@ class Bot {
     this.gameConfig = { 
       timeout: 45, 
       maxplayers: 25, 
-      start_game_timeout: 60, 
-      bots: 0,
+      start_game_timeout: 20, 
+      bots: 1,
       smallblind: 4,
       initialstash: 20000
     };
@@ -34,6 +34,9 @@ class Bot {
       smallblind: `Initial small blind. (default ${this.gameConfig.smallblind})`,
       initialstash: `Starting value of chips for each player. (default ${this.gameConfig.initialstash})`
     }
+
+    this.isGameRunning = {};
+    this.isPolling = {};
   }
 
   // Public: Brings this bot online and starts handling messages sent to it.
@@ -58,7 +61,7 @@ class Bot {
 
     let disp = new rx.CompositeDisposable();
 
-    disp.add(this.handleDealGameMessages(messages, atMentions));
+    disp.add(this.handleStartGameMessages(messages, atMentions));
     disp.add(this.handleSetConfigMessages(atMentions));
     disp.add(this.handleGetConfigMessages(atMentions));
     disp.add(this.handleHelpMessages(atMentions));
@@ -67,20 +70,20 @@ class Bot {
   }
 
   // Private: Looks for messages directed at the bot that contain the word
-  // "deal." When found, start polling players for a game.
+  // "game." When found, start polling players for a game.
   //
   // messages - An {Observable} representing messages posted to a channel
   // atMentions - An {Observable} representing messages directed at the bot
   //
   // Returns a {Disposable} that will end this subscription
-  handleDealGameMessages(messages, atMentions) {
+  handleStartGameMessages(messages, atMentions) {
     return atMentions
-      .where(e => e.text && e.text.toLowerCase().match(/\bdeal\b/))
+      .where(e => e.text && e.text.toLowerCase().match(/\bgame\b/))
       .map(e => e.channel)
       .where(channel => {
-        if (this.isPolling) {
+        if (channel in this.isPolling && this.isPolling[channel]) {
           return false;
-        } else if (this.isGameRunning) {
+        } else if (channel in this.isGameRunning && this.isGameRunning[channel]) {
           this.slackRTM.sendMessage('Another game is in progress, quit that first.', channel);
           return false;
         }
@@ -91,9 +94,6 @@ class Bot {
   }
 
 
-  sendConfigErrorMessage(key) {
-   }
-  
   // Private: Looks for messages directed at the bot that contain the word
   // "config" and have valid parameters. When found, set the parameter.
   //
@@ -152,7 +152,8 @@ class Bot {
     return atMentions
       .where(e => e.text && e.text.toLowerCase().match(/\bhelp\b/))
       .subscribe(e => {
-        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " deal` to start new game of Texas Hold'em", e.channel);
+        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " game` to start new game of Texas Hold'em", e.channel);
+        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " config` to review settings", e.channel);
         this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " config <key>=<value>` to adjust settings before starting a game", e.channel);
       });
   }
@@ -161,13 +162,14 @@ class Bot {
   // instance.
   //
   // messages - An {Observable} representing messages posted to the channel
-  // channel - The channel where the deal message was posted
+  // channel - The channel where the 'game' message was posted
   //
   // Returns an {Observable} that signals completion of the game 
   pollPlayersForGame(messages, channel) {
-    this.isPolling = true;
+    this.isPolling[channel] = true;
 
-    return PlayerInteraction.pollPotentialPlayers(messages, this.slackWeb, this.slackRTM, channel, this.gameConfig.start_game_timeout, this.gameConfig.maxplayers)
+    return PlayerInteraction.pollPotentialPlayers(messages, this.slackWeb, this.slackRTM, channel, 
+      this.gameConfig.start_game_timeout, this.gameConfig.maxplayers)
       .reduce((players, id) => {
         this.slackWeb.users.info({ user: id })
           .then((result) => {
@@ -179,7 +181,7 @@ class Bot {
         return players;
       }, [])
       .flatMap(players => {
-        this.isPolling = false;
+        this.isPolling[channel] = false;
         if (this.gameConfig.bots != 0) {
           this.addBotPlayers(players);
         }
@@ -203,7 +205,7 @@ class Bot {
     }
 
     this.slackRTM.sendMessage(`We've got ${players.length} players, let's start the game.`, channel);
-    this.isGameRunning = true;
+    this.isGameRunning[channel] = true;
 
     let game = new TexasHoldem(this.slackWeb, this.slackRTM, messages, channel, players, this.gameConfig);
     // TODO: clean this up?
@@ -223,6 +225,17 @@ class Bot {
           .catch(console.error);
       });
 
+    // Listen for messages directed at the bot containing 'deal'
+    let dealHandDisp = messages.where(e => MessageHelpers.containsUserMention(e.text, this.slackRTM.activeUserId) &&
+      e.text.toLowerCase().match(/deal/))
+      .takeUntil(game.gameEnded)
+      .subscribe(e => {
+        this.slackWeb.users.info({ user: e.user })
+          .then((result) => {
+            game.playHand();
+          })
+          .catch(console.error);
+      });
 
     let ret = rx.Observable.fromArray(players)
       .flatMap((user) => rx.Observable.return(_.find(this.dms, d => d.user == user.id)))
@@ -242,7 +255,8 @@ class Bot {
         .flatMap(() => game.start(playerDms)))
       .do(() => {
         quitGameDisp.dispose();
-        this.isGameRunning = false;
+        dealHandDisp.dispose();
+        this.isGameRunning[channel] = false;
       });
   }
 
