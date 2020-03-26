@@ -23,7 +23,7 @@ class Bot {
       start_game_timeout: 20, 
       bots: 1,
       smallblind: 4,
-      initialstash: 20000
+      initialstash: 2000
     };
 
     this.gameConfigDescs = {
@@ -293,7 +293,7 @@ class Bot {
       .then((response) => {
         // Success!
         this.botInfo = response.user
-        console.log(`Welcome to Slack. You are ${this.botInfo.name} of team ${this.botInfo.team_id}`);
+        console.log(`Welcome to Slack. You are ${this.botInfo.name} of team ${this.botInfo.team_name}(${this.botInfo.team_id})`);
       })
       .catch((error) => {
         // Error :/
