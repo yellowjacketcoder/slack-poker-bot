@@ -107,7 +107,7 @@ class TexasHoldem {
 
     this.doBettingRound('preflop').subscribe(result => {
       if (result.isHandComplete) {
-        this.potManager.endHand(result);
+        this.potManager.endHand(this.slackWeb, this.slackRTM, result);
         this.onHandEnded(handEnded);
       } else {
         this.flop(handEnded);
