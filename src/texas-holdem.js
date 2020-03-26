@@ -16,7 +16,7 @@ class TexasHoldem {
   // channel - The channel where the game will be played
   // players - The players participating in the game
   // scheduler - (Optional) The scheduler to use for timing events
-  constructor(slackWeb, slackRTM, messages, channel, players, scheduler = rx.Scheduler.timeout) {
+  constructor(slackWeb, slackRTM, messages, channel, players, gameConfig, scheduler = rx.Scheduler.timeout) {
     this.slackWeb = slackWeb;
     this.slackRTM = slackRTM;
     this.messages = messages;
@@ -24,15 +24,18 @@ class TexasHoldem {
     this.players = players;
     this.scheduler = scheduler;
 
-    this.smallBlind = 4;
+    // copy gameconfig to allow each game to be distinct
+    this.gameConfig = Object.assign( {}, gameConfig);
+    
+    this.smallBlind = this.gameConfig.smallblind;
     this.bigBlind = this.smallBlind * 2;
     this.potManager = new PotManager(this.channel, players, this.smallBlind);
     this.gameEnded = new rx.Subject();
 
+
     // Each player starts with initial stash
     for (let player of this.players) {
-      player.chips = this.bigBlind * 100;
-      //gameConfig.initialStash;
+      player.chips = this.gameConfig.initialstash;
     }
   }
 
@@ -54,10 +57,7 @@ class TexasHoldem {
       dealerButton;
 
     rx.Observable.return(true)
-      .flatMap(() => this.playHand()
-        .flatMap(() => rx.Observable.timer(timeBetweenHands, this.scheduler)))
-      //.repeat()
-      //.takeUntil(this.gameEnded)
+      .flatMap(() => this.playHand())
       .subscribe();
 
     return this.gameEnded;
@@ -115,6 +115,14 @@ class TexasHoldem {
     });
 
     return handEnded;
+  }
+
+  // Private: increase blinds
+  // TODO: allow the increase to be specified
+  // Returns nothing
+  increaseBlinds() {
+    this.smallBlind = this.smallBlind * 2;
+    this.bigBlind = this.smallBlind * 2;
   }
 
   // Private: Adds players to the hand if they have enough chips and determines

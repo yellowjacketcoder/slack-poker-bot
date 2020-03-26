@@ -134,6 +134,8 @@ class Bot {
       .where(e => e.text && e.text.toLowerCase().includes('config'))
       .subscribe(e => {
         let message = `Current configuration values\n\`\`\``;
+        //TODO: make this get config of current game in progress (if any)
+        //rather than new game settings
         for (let option in this.gameConfig) {
           message = message + `${option}: ${this.gameConfig[option]}\n`;
         }
@@ -237,6 +239,18 @@ class Bot {
           .catch(console.error);
       });
 
+    // Listen for messages directed at the bot containing 'increase blinds'
+    let increaseBlindsDisp = messages.where(e => MessageHelpers.containsUserMention(e.text, this.slackRTM.activeUserId) &&
+      e.text.toLowerCase().match(/increase blinds/))
+      .takeUntil(game.gameEnded)
+      .subscribe(e => {
+        this.slackWeb.users.info({ user: e.user })
+          .then((result) => {
+            game.increaseBlinds();
+          })
+          .catch(console.error);
+      });
+
     let ret = rx.Observable.fromArray(players)
       .flatMap((user) => rx.Observable.return(_.find(this.dms, d => d.user == user.id)))
       .reduce((acc, x) => {
@@ -256,6 +270,7 @@ class Bot {
       .do(() => {
         quitGameDisp.dispose();
         dealHandDisp.dispose();
+        increaseBlindsDisp.dispose();
         this.isGameRunning[channel] = false;
       });
   }
