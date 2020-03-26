@@ -318,7 +318,7 @@ class Bot {
     this.slackWeb.groups.list()
       .then((res) => {
         // `res` contains information about the channels
-        res.groups.forEach(g => console.log(g.name, c.is_archived));
+        res.groups.forEach(g => console.log(g.name, g.is_archived));
         this.groups = _.filter(res.groups, g => !g.is_archived);
         if (this.groups.length > 0) {
           console.log(`As well as: ${this.groups.map(g => g.name).join(', ')}`);
