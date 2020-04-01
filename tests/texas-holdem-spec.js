@@ -14,7 +14,7 @@ describe('TexasHoldem', function() {
     messages = new rx.Subject();
     channel = {
       send: function(message) {
-        console.log(message);
+        //console.log(message);
         return { updateMessage: function() { } };
       }
     };
@@ -25,7 +25,7 @@ describe('TexasHoldem', function() {
     slackWeb = { token: 0xDEADBEEF };
     slackRTM = {
       sendMessage: async function(message) { 
-        console.log(message);
+        //console.log(message);
         return { ts: false} 
       }
     };
@@ -52,7 +52,7 @@ describe('TexasHoldem', function() {
     _.extend(game, gameConfig);
 
     var emptyDm = { send: function(message) { 
-      console.log(message);
+      //console.log(message);
       }
     };
 
@@ -61,7 +61,7 @@ describe('TexasHoldem', function() {
     // We don't want to create any images during tests, so just have this
     // function write to the console.
     game.postBoard = function(round) {
-      console.log("Dealing the " + round + ": " + game.board.toString());
+      //console.log("Dealing the " + round + ": " + game.board.toString());
       return rx.Observable.return(true);
     };
 
@@ -70,7 +70,7 @@ describe('TexasHoldem', function() {
   });
   
   it('should handle consecutive raises correctly', function() {
-    console.log('should handle consecutive raises correctly');
+    //console.log('should handle consecutive raises correctly');
     game.start(playerDms, 0);
     scheduler.advanceBy(5000);
 
@@ -103,7 +103,7 @@ describe('TexasHoldem', function() {
   });
 
   it('should handle player timeout by folding, or if possible, checking', function() {
-    console.log('should handle player timeout by folding, or if possible, checking');
+    //console.log('should handle player timeout by folding, or if possible, checking');
     game.start(playerDms, 0);
     scheduler.advanceBy(5000);
 
@@ -137,7 +137,7 @@ describe('TexasHoldem', function() {
   });
 
   it('should handle a complex hand correctly', function() {
-    console.log('should handle a complex hand correctly');
+    //console.log('should handle a complex hand correctly');
     // Start with Phil Ivey (index 0) as dealer.
     game.start(playerDms, 0);
     scheduler.advanceBy(5000);
@@ -224,7 +224,7 @@ describe('TexasHoldem', function() {
   });
 
   it('should handle split pots correctly', function() {
-    console.log('should handle split pots correctly');
+    //console.log('should handle split pots correctly');
     game.start(playerDms, 0);
     scheduler.advanceBy(5000);
 
@@ -279,9 +279,9 @@ describe('TexasHoldem', function() {
     assert(lastResult.handName === 'four of a kind', `Last result is 4 of a kind. Actual ${lastResult.handName}`);
     game.quit();
   });
-  
+
   it('should assign a winner if everyone folds', function() {
-    console.log('should assign a winner if everyone folds');
+    //console.log('should assign a winner if everyone folds');
     game.start(playerDms, 0);
     scheduler.advanceBy(5000);
 
@@ -301,7 +301,7 @@ describe('TexasHoldem', function() {
   });
 
   it('should award the pot to an all-in player if everyone else folds', function() {
-    console.log('should award the pot to an all-in player if everyone else folds');
+    //console.log('should award the pot to an all-in player if everyone else folds');
     game.start(playerDms, 0);
     scheduler.advanceBy(5000);
 
@@ -321,8 +321,29 @@ describe('TexasHoldem', function() {
     game.quit();
   });
   
+  it('should end the game when all players have been eliminated', function() {
+    //console.log('should end the game when all players have been eliminated');
+    game.start(playerDms, 0);
+    scheduler.advanceBy(5000);
+
+    messages.onNext({user: 4, text: "Raise 400"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 5, text: "Call"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 1, text: "Call"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 2, text: "Call"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 3, text: "Call"});
+    scheduler.advanceBy(5000);
+
+    // If the game is still running, the last hand was a tie.
+    var lastResult = game.potManager.outcomes.pop();
+    assert(!game.isRunning || (lastResult && lastResult.isSplitPot), `Game either over or split pot`);
+  });
+
   it('should handle players who are forced all-in by posting blinds', function() {
-    console.log('should handle players who are forced all-in by posting blinds');
+    //console.log('should handle players who are forced all-in by posting blinds');
     let gameEnded = game.start(playerDms, 0);
     
     // Sad Patrik.
@@ -338,7 +359,8 @@ describe('TexasHoldem', function() {
     messages.onNext({user: 2, text: "Fold"});
     scheduler.advanceBy(5000);
     
-    //let handEnded = game.playHand();
+    let handEnded = game.playHand();
+    scheduler.advanceBy(5000);
 
     messages.onNext({user: 5, text: "Fold"});
     scheduler.advanceBy(5000);
@@ -351,13 +373,53 @@ describe('TexasHoldem', function() {
     
     assert(game.potManager.outcomes.length === 2, `Two players left. Actual ${game.potManager.outcomes.length}`);
     // Patrik either doubled up (2 * 2 = 4, minus the SB = 3), or lost it all.
-    assert(players[3].chips === 3 || players[3].chips === 0, `Patrick either doubled up (2 * 2 = 4, minus the SB = 3), or lost it all. Actual ${players[3].chips}`);
+    assert(players[3].isAllIn, `Patrick Antonius is all in. Actual ${players[3].isAllIn}`);
+    assert(players[3].chips === 4 || players[3].chips === 0, `Patrick either doubled up (2 * 2 = 4), or lost it all. Actual ${players[3].chips}`);
     game.quit();
   });
   
- 
+  it('should handle all-ins correctly', function() {
+    //console.log('should handle all-ins correctly');
+    game.start(playerDms, 0);
+    scheduler.advanceBy(5000);
+
+    messages.onNext({user: 4, text: "call"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 5, text: "fold"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 1, text: "raise 20"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 2, text: "Fold"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 3, text: "Fold"});
+    scheduler.advanceBy(5000);
+
+    messages.onNext({user: 4, text: "Raise 400"});
+    scheduler.advanceBy(5000);
+
+    assert(game.potManager.currentBet === 400, `Current bet is 400. Actual ${game.potManager.currentBet}`);
+    assert(game.potManager.getTotalChips() === 432, `Pot total is 432. Actual ${game.potManager.getTotalChips()}`);
+    assert(players[3].chips === 0, `Player 4 chips is 0. Actual ${players[3].chips}`);
+    assert(players[3].isAllIn, `Player 4 chips is all-in. Actual ${players[3].isAllIn}`);
+
+    messages.onNext({user: 1, text: "Call"});
+    scheduler.advanceBy(5000);
+
+    var lastResult = game.potManager.outcomes.pop();
+    var winner = lastResult.winners[0];
+    assert(winner.id === 1 || winner.id === 4, `Player 1 or Player 4 is winner. Actual ${winner.id}`);
+    
+    let handEnded = game.playHand();
+    scheduler.advanceBy(5000);
+
+    // Check that the losing player was eliminated, or that the pot was split.
+    assert(game.board.length === 0, `Board length is 0. Actual ${game.board.length}`);
+    assert(game.getPlayersInHand().length === 4 || lastResult.isSplitPot, `Check that the losing player was eliminated, or that the pot was split.`);
+    game.quit();
+  });
+
   it('should handle multiple rounds with all-ins', function() {
-    console.log('should handle multiple rounds with all-ins');
+    //console.log('should handle multiple rounds with all-ins');
     game.start(playerDms, 0);
     
     players[0].chips = 200;
@@ -406,8 +468,8 @@ describe('TexasHoldem', function() {
     scheduler.advanceBy(5000);
     assert(game.potManager.pots.length === 3, `Pot Manager has 3 active bets. Actual ${game.potManager.pots.length}`);
     assert(game.potManager.pots[0].amount === 200, `Pot 1 amount 200. Actual ${game.potManager.pots[0].amount}`);
-    assert(game.potManager.pots[1].amount === 150, `Pot 2 amount 150. Actual ${game.potManager.pots[1].amount}`);
-    assert(game.potManager.pots[2].amount === 20, `Pot 3 amount 20. Actual ${game.potManager.pots[2].amount}`);
+    assert(game.potManager.pots[1].amount === 168, `Pot 2 amount 168. Actual ${game.potManager.pots[1].amount}`);
+    assert(game.potManager.pots[2].amount === 8, `Pot 3 amount 8. Actual ${game.potManager.pots[2].amount}`);
     
     messages.onNext({user: 2, text: "Check"});
     scheduler.advanceBy(5000);
@@ -417,18 +479,18 @@ describe('TexasHoldem', function() {
     scheduler.advanceBy(5000);
     assert(game.potManager.pots.length === 3, `Pot Manager has 3 active bets. Actual ${game.potManager.pots.length}`);
     assert(game.potManager.pots[0].amount === 200, `Pot 1 amount 200. Actual ${game.potManager.pots[0].amount}`);
-    assert(game.potManager.pots[1].amount === 150, `Pot 2 amount 150. Actual ${game.potManager.pots[1].amount}`);
-    assert(game.potManager.pots[2].amount === 40, `Pot 3 amount 40. Actual ${game.potManager.pots[2].amount}`);
+    assert(game.potManager.pots[1].amount === 168, `Pot 2 amount 168. Actual ${game.potManager.pots[1].amount}`);
+    assert(game.potManager.pots[2].amount === 28, `Pot 3 amount 28. Actual ${game.potManager.pots[2].amount}`);
     
     messages.onNext({user: 2, text: "Bet 30"});
     scheduler.advanceBy(5000);
     assert(game.potManager.pots.length === 3, `Pot Manager has 3 active bets. Actual ${game.potManager.pots.length}`);
     assert(game.potManager.pots[0].amount === 200, `Pot 1 amount 200. Actual ${game.potManager.pots[0].amount}`);
-    assert(game.potManager.pots[1].amount === 150, `Pot 2 amount 150. Actual ${game.potManager.pots[1].amount}`);
-    assert(game.potManager.pots[2].amount === 70, `Pot 3 amount 70. Actual ${game.potManager.pots[2].amount}`);
+    assert(game.potManager.pots[1].amount === 168, `Pot 2 amount 168. Actual ${game.potManager.pots[1].amount}`);
+    assert(game.potManager.pots[2].amount === 58, `Pot 3 amount 58. Actual ${game.potManager.pots[2].amount}`);
     
     assert(players[0].chips === 80, `Player 1 has 80 chips. Actual ${players[0].chips}`);
-    assert(players[1].chips === 0, `Player 2 has 0 chips. Actual ${players[1].chips}`);
+    assert(players[1].chips === 3, `Player 2 has 3 chips. Actual ${players[1].chips}`);
     assert(players[2].chips === 0, `Player 3 has 0 chips. Actual ${players[2].chips}`);
     assert(players[3].chips === 75, `Player 4 has 75 chips. Actual ${players[3].chips}`);
     assert(players[4].chips === 0, `Player 5 has 0 chips. Actual ${players[4].chips}`);
@@ -436,19 +498,23 @@ describe('TexasHoldem', function() {
     messages.onNext({user: 1, text: "Call"});
     scheduler.advanceBy(5000);
     
+    // advance to the next hand
+    let handEnded = game.playHand();
+    scheduler.advanceBy(5000);
+
     var chipTotalAfter = _.reduce(players, function(total, player) { 
       return total + player.chips; 
     }, 0);
     
     assert(game.isRunning, `Game should still be running. Actual ${game.isRunning}`);
     assert(game.potManager.pots.length === 1, `Pot Manager has 1 active bets. Actual ${game.potManager.pots.length}`);
-    assert(game.potManager.pots[0].amount === 3, `Pot 1 amount 3. Actual ${game.potManager.pots[0].amount}`);
+    assert(game.potManager.pots[0].amount === 12, `Pot 1 amount 12. Actual ${game.potManager.pots[0].amount}`);
     assert(chipTotalAfter === 572, `Chip total after game 572. Actual ${chipTotalAfter}`);
     game.quit();
   });
   
   it('should handle multiple side pots and all-ins over the top (scenario 1)', function() {
-    console.log('should handle multiple side pots and all-ins over the top (scenario 1)');
+    //console.log('should handle multiple side pots and all-ins over the top (scenario 1)');
     game.start(playerDms, 0);
     
     // Lots of short stacks this time around.
@@ -468,7 +534,7 @@ describe('TexasHoldem', function() {
     messages.onNext({user: 5, text: "Raise 50"});
     scheduler.advanceBy(5000);
     assert(players[4].chips === 0, `Player 5 has 0 chips. Actual ${players[4].chips}`);
-    assert(game.potManager.pots[0].amount === 55, `Pot 1 amount 55. Actual ${game.potManager.pots[0].amount}`);
+    assert(game.potManager.pots[0].amount === 70, `Pot 1 amount 70. Actual ${game.potManager.pots[0].amount}`);
     
     messages.onNext({user: 1, text: "Call"});
     scheduler.advanceBy(5000);
@@ -476,7 +542,7 @@ describe('TexasHoldem', function() {
     scheduler.advanceBy(5000);
     messages.onNext({user: 3, text: "Call"});
     scheduler.advanceBy(5000);
-    assert(game.potManager.pots[0].amount === 202, `Pot 1 amount 202. Actual ${game.potManager.pots[0].amount}`);
+    assert(game.potManager.pots[0].amount === 208, `Pot 1 amount 208. Actual ${game.potManager.pots[0].amount}`);
     
     // Over the top all-in.
     messages.onNext({user: 4, text: "Raise 75"});
@@ -491,7 +557,7 @@ describe('TexasHoldem', function() {
     messages.onNext({user: 3, text: "Raise 100"});
     scheduler.advanceBy(5000);
     assert(players[2].chips === 0, `Player 3 has 0 chips. Actual ${players[2].chips}`);
-    assert(game.potManager.pots[0].amount === 375, `Pot 1 amount 375. Actual ${game.potManager.pots[0].amount}`);
+    assert(game.potManager.pots[0].amount === 381, `Pot 1 amount 381. Actual ${game.potManager.pots[0].amount}`);
     
     messages.onNext({user: 1, text: "Call"});
     scheduler.advanceBy(5000);
@@ -501,7 +567,7 @@ describe('TexasHoldem', function() {
     assert(game.potManager.pots.length === 4, `Pot Manager has 4 active bets. Actual ${game.potManager.pots.length}`);
     assert(game.potManager.pots[0].amount === 250, `Pot 1 amount 250. Actual ${game.potManager.pots[0].amount}`);
     assert(game.potManager.pots[1].amount === 100, `Pot 2 amount 100. Actual ${game.potManager.pots[1].amount}`);
-    assert(game.potManager.pots[2].amount === 75, `Pot 3 amount 75. Actual ${game.potManager.pots[2].amount}`);
+    assert(game.potManager.pots[2].amount === 93, `Pot 3 amount 93. Actual ${game.potManager.pots[2].amount}`);
     assert(game.potManager.pots[3].amount === 0, `Pot 4 amount 0. Actual ${game.potManager.pots[3].amount}`);
     
     messages.onNext({user: 2, text: "Bet 50"});
@@ -509,6 +575,10 @@ describe('TexasHoldem', function() {
     messages.onNext({user: 1, text: "Call"});
     scheduler.advanceBy(5000);
 
+    // advance to the next hand
+    let handEnded = game.playHand();
+    scheduler.advanceBy(5000);
+ 
     var chipTotalAfter = _.reduce(players, function(total, player) {
       return total + player.chips;
     }, 0);
@@ -519,8 +589,51 @@ describe('TexasHoldem', function() {
     game.quit();
   });
   
+  it('should handle default bets and raises', function() {
+    //console.log('should handle default bets and raises');
+    game.start(playerDms, 0);
+    scheduler.advanceBy(5000);
+
+    messages.onNext({user: 4, text: "raise"});
+    scheduler.advanceBy(5000);
+    assert(game.potManager.currentBet === 16, `Current bet is 16. Actual ${game.potManager.currentBet}`);
+    assert(game.potManager.getTotalChips() === 28, `Pot total is 28. Actual ${game.potManager.getTotalChips()}`);
+
+    messages.onNext({user: 5, text: "raise"});
+    scheduler.advanceBy(5000);
+    assert(game.potManager.currentBet === 32, `Current bet is 8. Actual ${game.potManager.currentBet}`);
+    assert(game.potManager.getTotalChips() === 60, `Pot total is 60. Actual ${game.potManager.getTotalChips()}`);
+
+    messages.onNext({user: 1, text: "raise"});
+    scheduler.advanceBy(5000);
+    assert(game.potManager.currentBet === 64, `Current bet is 16. Actual ${game.potManager.currentBet}`);
+    assert(game.potManager.getTotalChips() === 124, `Pot total is 124. Actual ${game.potManager.getTotalChips()}`);
+
+    messages.onNext({user: 2, text: "fold"});
+    scheduler.advanceBy(5000);
+    messages.onNext({user: 3, text: "fold"});
+    scheduler.advanceBy(5000);
+
+    messages.onNext({user: 4, text: "call"});
+    scheduler.advanceBy(5000);
+    assert(game.potManager.currentBet === 64, `Current bet is 64. Actual ${game.potManager.currentBet}`);
+    assert(game.potManager.getTotalChips() === 172, `Pot total is 172. Actual ${game.potManager.getTotalChips()}`);
+
+    messages.onNext({user: 5, text: "call"});
+    scheduler.advanceBy(5000);
+    assert(game.potManager.currentBet === 0, `Current bet is 0. Actual ${game.potManager.currentBet}`);
+    assert(game.potManager.getTotalChips() === 204, `Pot total is 204. Actual ${game.potManager.getTotalChips()}`);
+
+    messages.onNext({user: 4, text: "bet"});
+    scheduler.advanceBy(5000);
+    assert(game.potManager.currentBet === 4, `Current bet is 4. Actual ${game.potManager.currentBet}`);
+    assert(game.potManager.getTotalChips() === 208, `Pot total is 208. Actual ${game.potManager.getTotalChips()}`);
+
+    game.quit();
+  });
+
   it('should handle multiple side pots and all-ins over the top (scenario 2)', function() {
-    console.log('should handle multiple side pots and all-ins over the top (scenario 2)');
+    //console.log('should handle multiple side pots and all-ins over the top (scenario 2)');
     game.start(playerDms, 0);
     
     players[1].chips = 149;
@@ -534,7 +647,7 @@ describe('TexasHoldem', function() {
     messages.onNext({user: 5, text: "Raise 50"});
     scheduler.advanceBy(5000);
     assert(players[4].chips === 0);
-    assert(game.potManager.pots[0].amount === 55, `Pot 1 amount 55. Actual ${game.potManager.pots[0].amount}`);
+    assert(game.potManager.pots[0].amount === 70, `Pot 1 amount 70. Actual ${game.potManager.pots[0].amount}`);
     
     messages.onNext({user: 1, text: "Call"});
     scheduler.advanceBy(5000);
@@ -542,7 +655,7 @@ describe('TexasHoldem', function() {
     scheduler.advanceBy(5000);
     messages.onNext({user: 3, text: "Call"});
     scheduler.advanceBy(5000);
-    assert(game.potManager.pots[0].amount === 202, `Pot 1 amount 202. Actual ${game.potManager.pots[0].amount}`);
+    assert(game.potManager.pots[0].amount === 208, `Pot 1 amount 202. Actual ${game.potManager.pots[0].amount}`);
 
     messages.onNext({user: 4, text: "Raise 75"});
     scheduler.advanceBy(5000);
@@ -556,7 +669,7 @@ describe('TexasHoldem', function() {
     messages.onNext({user: 3, text: "Call"});
     scheduler.advanceBy(5000);
     
-    assert(players[2].chips === 0, `Player 3 has 0 chips. Actual ${players[2].chips}`);
+    assert(players[2].chips === 6, `Player 3 has 6 chips. Actual ${players[2].chips}`);
     assert(game.potManager.pots.length === 3);
     assert(game.potManager.pots[0].amount === 250, `Pot 1 amount 250. Actual ${game.potManager.pots[0].amount}`);
     assert(game.potManager.pots[1].amount === 100, `Pot 2 amount 100. Actual ${game.potManager.pots[1].amount}`);
@@ -566,7 +679,7 @@ describe('TexasHoldem', function() {
   });
   
   it("should divide pots based on a player's stake", function() {
-    console.log("should divide pots based on a player's stake");
+    //console.log("should divide pots based on a player's stake");
     game.start(playerDms, 0);
 
     // Give Chip a small stack for this test.
@@ -583,8 +696,8 @@ describe('TexasHoldem', function() {
     scheduler.advanceBy(5000);
     messages.onNext({user: 2, text: "Call"});
     scheduler.advanceBy(5000);
-    assert(players[1].chips === 150, `Player 2 has 0 chips. Actual ${players[1].chips}`);
-    assert(game.potManager.pots[0].amount === 102, `Pot 1 amount 102. Actual ${game.potManager.pots[0].amount}`);
+    assert(players[1].chips === 350, `Player 2 has 350 chips. Actual ${players[1].chips}`);
+    assert(game.potManager.pots[0].amount === 108, `Pot 1 amount 108. Actual ${game.potManager.pots[0].amount}`);
 
     messages.onNext({user: 3, text: "Call"});
     scheduler.advanceBy(5000);
@@ -643,119 +756,19 @@ describe('TexasHoldem', function() {
     assert(lastResult.length === 2, `Should be 2 hands played. Actual ${lastResult.length}`);
     assert(!lastResult[0].isSplitPot, `Pot 1 should not be split. Actual ${lastResult[0].isSplitPot}`);
     assert(lastResult[0].winners[0].name === 'Chip Reese', `Hand 1 winner is Chip Reese. Actual ${lastResult[0].winners[0].name}`);
-    assert(lastResult[0].winners[0].chips === 150, `Chip Reese hould have 150 chips. Actual ${lastResult[0].winners[0].chips}`);
+    assert(lastResult[0].winners[0].chips === 150, `Chip Reese should have 150 chips. Actual ${lastResult[0].winners[0].chips}`);
     
     // Doyle and Stu split the remainder (Stu would be 150, but posted SB).
     assert(lastResult[1].isSplitPot, `Hand 2 should be split. Actual ${lastResult[1].isSplitPot}`);
     assert(lastResult[1].winners.length === 2, `Hand 2 should have 2 winners. Actual ${lastResult[1].winners.length}`);
-    assert(lastResult[1].winners[0].name === 'Doyle Brunson', `Hand 2 first split winner is Doyle Brunson. Actual ${lastResult[1].winners[0].name}`);
-    assert(lastResult[1].winners[1].name === 'Stu Ungar', `Hand 2 second split winner is Stu Ungar. Actual ${lastResult[1].winners[1].name}`);
-    assert(players[1].chips === 150, `Player 2 has 150 chips. Actual ${players[1].chips}`);
-    assert(players[2].chips === 149, `Player 3 has 149 chips. Actual ${players[2].chips}`);
+    assert(lastResult[1].winners[1].name === 'Doyle Brunson', `Hand 2 first split winner is Doyle Brunson. Actual ${lastResult[1].winners[1].name}`);
+    assert(lastResult[1].winners[0].name === 'Stu Ungar', `Hand 2 second split winner is Stu Ungar. Actual ${lastResult[1].winners[0].name}`);
+    assert(players[1].chips === 350, `Player 2 has 350 chips. Actual ${players[1].chips}`);
+    assert(players[2].chips === 350, `Player 3 has 350 chips. Actual ${players[2].chips}`);
     
     game.quit();
   });
 
-  it('should end the game when all players have been eliminated', function() {
-    console.log('should end the game when all players have been eliminated');
-    game.start(playerDms, 0);
-    scheduler.advanceBy(5000);
-
-    messages.onNext({user: 4, text: "Raise 200"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 5, text: "Call"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 1, text: "Call"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 2, text: "Call"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 3, text: "Call"});
-    scheduler.advanceBy(5000);
-
-    // If the game is still running, the last hand was a tie.
-    var lastResult = game.potManager.outcomes.pop();
-    assert(!game.isRunning || (lastResult && lastResult.isSplitPot), `Game either over or split pot`);
-  });
-
-  it('should handle default bets and raises', function() {
-    console.log('should handle default bets and raises');
-    game.start(playerDms, 0);
-    scheduler.advanceBy(5000);
-
-    messages.onNext({user: 4, text: "raise"});
-    scheduler.advanceBy(5000);
-    assert(game.potManager.currentBet === 4, `Current bet is 4. Actual ${game.potManager.currentBet}`);
-    assert(game.potManager.getTotalChips() === 7, `Pot total is 7. Actual ${game.potManager.getTotalChips()}`);
-
-    messages.onNext({user: 5, text: "raise"});
-    scheduler.advanceBy(5000);
-    assert(game.potManager.currentBet === 8, `Current bet is 8. Actual ${game.potManager.currentBet}`);
-    assert(game.potManager.getTotalChips() === 15, `Pot total is 15. Actual ${game.potManager.getTotalChips()}`);
-
-    messages.onNext({user: 1, text: "raise"});
-    scheduler.advanceBy(5000);
-    assert(game.potManager.currentBet === 16, `Current bet is 16. Actual ${game.potManager.currentBet}`);
-    assert(game.potManager.getTotalChips() === 31, `Pot total is 31. Actual ${game.potManager.getTotalChips()}`);
-
-    messages.onNext({user: 2, text: "fold"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 3, text: "fold"});
-    scheduler.advanceBy(5000);
-
-    messages.onNext({user: 4, text: "call"});
-    scheduler.advanceBy(5000);
-    assert(game.potManager.currentBet === 16, `Current bet is 16. Actual ${game.potManager.currentBet}`);
-    assert(game.potManager.getTotalChips() === 43, `Pot total is 43. Actual ${game.potManager.getTotalChips()}`);
-
-    messages.onNext({user: 5, text: "call"});
-    scheduler.advanceBy(5000);
-    assert(game.potManager.currentBet === 0, `Current bet is 0. Actual ${game.potManager.currentBet}`);
-    assert(game.potManager.getTotalChips() === 51, `Pot total is 51. Actual ${game.potManager.getTotalChips()}`);
-
-    messages.onNext({user: 4, text: "bet"});
-    scheduler.advanceBy(5000);
-    assert(game.potManager.currentBet === 1, `Current bet is 1. Actual ${game.potManager.currentBet}`);
-    assert(game.potManager.getTotalChips() === 52, `Pot total is 52. Actual ${game.potManager.getTotalChips()}`);
-
-    game.quit();
-  });
-
-  it('should handle all-ins correctly', function() {
-    console.log('should handle all-ins correctly');
-    game.start(playerDms, 0);
-    scheduler.advanceBy(5000);
-
-    messages.onNext({user: 4, text: "call"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 5, text: "fold"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 1, text: "raise 20"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 2, text: "Fold"});
-    scheduler.advanceBy(5000);
-    messages.onNext({user: 3, text: "Fold"});
-    scheduler.advanceBy(5000);
-
-    messages.onNext({user: 4, text: "Raise 200"});
-    scheduler.advanceBy(5000);
-
-    assert(game.potManager.currentBet === 200, `Current bet is 200. Actual ${game.potManager.currentBet}`);
-    assert(game.potManager.getTotalChips() === 223, `Pot total is 223. Actual ${game.potManager.getTotalChips()}`);
-    assert(players[3].chips === 0, `Player 4 chips is 0. Actual ${players[3].chips}`);
-    assert(players[3].isAllIn, `Player 4 chips is all-in. Actual ${players[3].isAllIn}`);
-
-    messages.onNext({user: 1, text: "Call"});
-    scheduler.advanceBy(5000);
-
-    var lastResult = game.potManager.outcomes.pop();
-    var winner = lastResult.winners[0];
-    assert(winner.id === 1 || winner.id === 4, `Player 1 or Player 4 is winner. Actual ${winner.id}`);
-
-    // Check that the losing player was eliminated, or that the pot was split.
-    assert(game.board.length === 0, `Board length is 0. Actual ${game.board.length}`);
-    assert(game.getPlayersInHand().length === 4 || lastResult.isSplitPot, `Check that the losing player was eliminated, or that the pot was split.`);
-    game.quit();
-  });
 
  
 
