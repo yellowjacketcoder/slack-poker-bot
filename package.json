@@ -17,13 +17,13 @@
     "mocha": "^7.1.1"
   },
   "dependencies": {
+    "@slack/client": "^4.8.0",
     "babel-cli": "^6.26.0",
-    "jimp": "^0.9.6",
     "imgur": "^0.3.1",
+    "jimp": "^0.10.0",
     "poker-evaluator": "^0.3.1",
     "promisify-node": "^0.5.0",
     "rx": "^4.1.0",
-    "@slack/client": "^4.8.0",
     "text-table": "^0.2.0",
     "underscore-plus": "^1.6.8",
     "uuid": "^3.3.2"
