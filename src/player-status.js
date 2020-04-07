@@ -51,9 +51,9 @@ class PlayerStatus {
     }
 
     let handStatus = `${tableFormatter}${textTable(table)}${tableFormatter}`;
-    if (board.length > 0) {
-      handStatus += `\nCurrent board: ${board.toString()}`;
-    }
+    //if (board.length > 0) {
+    //  handStatus += `\nCurrent board: ${board.toString()}`;
+    //}
     let potBreakdown = '';
     
     for (let idx = 0; idx < potManager.pots.length; idx++) {

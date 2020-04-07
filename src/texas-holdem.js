@@ -519,10 +519,39 @@ class TexasHoldem {
   //
   // Returns an {Observable} indicating completion
   postBoard(round) {
-    let message = `Dealing the ${round}:\n${this.board.toString()}`;
-    this.slackRTM.sendMessage(message, this.channel);
+    return ImageHelpers.createBoardImage(this.board)
+    .timeout(10000)
+    .flatMap(url => {
+      let message = {
+        //text: `Dealing the ${round}:\n${this.board.toString()}`,
+        as_user: true,
+        channel: this.channel
+      };
 
-    return rx.Observable.timer(1000, this.scheduler);
+      message.attachments = [{
+        title: `Dealing the ${round}:`,
+        fallback: this.board.toString(),
+        text: this.board.toString(),
+        color: 'good',
+        image_url: url,
+        channel: this.channel
+      }];
+
+      this.slackWeb.chat.postMessage(message);
+
+      // NB: Since we don't have a callback for the message arriving, we're
+      // just going to wait a second before continuing.
+      return rx.Observable.timer(1000, this.scheduler);
+    })
+    .take(1)
+    .catch(() => {
+      console.error('Creating board image timed out');
+
+      let message = `Dealing the ${round}:\n${this.board.toString()}`;
+      this.slackRTM.sendMessage(message, this.channel);
+
+      return rx.Observable.timer(1000, this.scheduler);
+    });
   }
 
   // Private: Posts a message to the channel describing a player's action.
