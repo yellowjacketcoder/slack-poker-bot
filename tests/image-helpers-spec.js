@@ -106,16 +106,14 @@ describe('ImageHelpers', function() {
 
       // wait for all three to finish before we are done.
       var count = 0;
-      completions.take(3).do( ()=> done());
-      
-      /* subscribe(x => {
+      completions.subscribe(x => {
         console.log(x);
         count++
         if (count == 3) {
           console.log("Finished");
           done();
         }
-      }); */
+      });
       
     });
   });
