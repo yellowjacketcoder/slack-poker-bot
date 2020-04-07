@@ -12,11 +12,6 @@ See it [in action](https://www.youtube.com/watch?v=Joku-PKUObE).
 1. Follow the steps to deploy the bot to Heroku or run it locally
 1. Once the bot is running, start a game with: `@<your-bot-name>: deal`
 
-#### One-Click Heroku
-Click this button:
-
-[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy)
-
 #### Manual Heroku
 1. Install [Heroku toolbelt](https://devcenter.heroku.com/articles/getting-started-with-nodejs#set-up)
 1. Create a new bot integration (as above)
@@ -27,21 +22,24 @@ Click this button:
 #### To Run Locally
 1. Create a `token.txt` file and paste your API token there
 1. `npm install`
-1. `node src/main.js`
+1. `npm start`
 
 ## Directions
-* To start a game, `@<your-bot-name>: deal`.
-* To end a game, `@<your-bot-name>: quit game`. The game will end once the current hand finishes.
+* For help, `@<your-bot-name>: help`.
+* To start a game, `@<your-bot-name>: game`. Players will have some number of seconds to sign up by replying with 'yes'.
+* To deal the next hand, `@<your-bot-name>: deal`.
+* To increase the blinds * 2, `@<your-bot-name>: increase blinds`
+* To end a game, `@<your-bot-name>: quit`. The game will end once the current hand finishes.
 Note that any player can end a game at any time with this command, so Be Honorable™.
 * To configure some bot options, `@<your-bot-name>: config <name-of-option>=<value>`. The supported options are:
 ```
-timeout: Sets the duration (in seconds) before a player times out. 
+timeout: Sets the duration (in seconds) before a player bet times out. 
 Set to 0 to specify no timeout.
 ```
 So, to start a game without any player timeout, say:
 ```
 @<your-bot-name>: config timeout=0
-@<your-bot-name>: deal
+@<your-bot-name>: game
 ```
 
 Check the open issues for some planned enhancements.
@@ -56,7 +54,7 @@ Although this client was built for managing human players in a Slack channel, it
 ### Test All The Things
 To run tests, simply do:
 
-1. `gulp`
+1. `npm test`
 
 The tests produce legible output that matches what users in Slack would see. This is the same test suite that is run on each pull request. This is very helpful when diagnosing a logic bug:
 ![](https://s3.amazonaws.com/f.cl.ly/items/2L0Y2Y3d3g0i1x171n2V/Image%202015-09-08%20at%207.00.40%20PM.png)
@@ -68,8 +66,8 @@ The tests produce legible output that matches what users in Slack would see. Thi
 * [RxJS](https://github.com/Reactive-Extensions/RxJS)
 The majority of this client is written using `RxJS`. It simplifies many of the complex player polling interactions, that would otherwise be Death By Timers, into very legible code.
 
-* [Imgur](https://github.com/kaimallea/node-imgur) / [Lightweight Image Processor](https://github.com/EyalAr/lwip)
-Each card is a separate image, and board images are created on the fly by pasting several cards onto a single canvas (with the help of  `lwip`). The resulting image is than uploaded to `imgur`, which gives us a single URL that can be passed as an attachment to the Slack API. This route was chosen to avoid uploading 318,505,200 images to the cloud, and allows us to modify the card assets easily.
+* [Jimp](https://github.com/oliver-moran/jimp) / [JavaScript IMage Processor](https://github.com/oliver-moran/jimp)
+Each card is a separate image, and board images are created on the fly by pasting several cards onto a single canvas (with the help of  `jimp`). The resulting image is than uploaded to `imgur`, which gives us a single URL that can be passed as an attachment to the Slack API. This route was chosen to avoid uploading 318,505,200 images to the cloud, and allows us to modify the card assets easily.
 
 * [Poker Evaluator](https://github.com/chenosaurus/poker-evaluator)
 `poker-evaluator` is used for evaluating the winning hand when it comes time to show down. Here it has been extended to calculate the best 5-card hand from any 7-card hand.
