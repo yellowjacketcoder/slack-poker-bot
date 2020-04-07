@@ -48,8 +48,8 @@ class Bot {
     this.respondToMessages();
   }
 
-  // Private: Listens for messages directed at this bot that contain the word
-  // 'deal,' and poll players in response.
+  // Private: Listens for messages directed at this bot 
+  // and poll players in response.
   //
   // Returns a {Disposable} that will end this subscription
   respondToMessages() {
@@ -154,7 +154,9 @@ class Bot {
     return atMentions
       .where(e => e.text && e.text.toLowerCase().match(/\bhelp\b/))
       .subscribe(e => {
-        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " game` to start new game of Texas Hold'em", e.channel);
+        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " game` to start a new game of Texas Hold'em", e.channel);
+        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " deal` to deal the next hand", e.channel);
+        this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " increase blinds` to bump the blinds", e.channel);
         this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " config` to review settings", e.channel);
         this.slackRTM.sendMessage("Type `@" + this.botInfo.name + " config <key>=<value>` to adjust settings before starting a game", e.channel);
       });
