@@ -44,7 +44,11 @@ class Bot {
     rx.Observable.fromEvent(this.slackRTM, 'ready')
       .subscribe(() => this.onClientOpened());
 
-    this.slackRTM.start();
+    this.slackRTM.start()
+      .catch(err => {
+        console.log("Slack authentication failed. Check that your SLACK_POKER_BOT_TOKEN is valid");
+        process.exit(1);
+      });
     this.respondToMessages();
   }
 
