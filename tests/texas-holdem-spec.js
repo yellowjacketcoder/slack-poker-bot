@@ -374,7 +374,8 @@ describe('TexasHoldem', function() {
     assert(game.potManager.outcomes.length === 2, `Two players left. Actual ${game.potManager.outcomes.length}`);
     // Patrik either doubled up (2 * 2 = 4, minus the SB = 3), or lost it all.
     assert(players[3].isAllIn, `Patrick Antonius is all in. Actual ${players[3].isAllIn}`);
-    assert(players[3].chips === 4 || players[3].chips === 0, `Patrick either doubled up (2 * 2 = 4), or lost it all. Actual ${players[3].chips}`);
+    // TODO: something is wrong with this test. It occasionally yields 2 chip for Patrik
+    assert(players[3].chips === 4 || players[3].chips === 0, `Patrick either doubled up (2 * 2 = 4), or came out with 0. Actual ${players[3].chips}`);
     game.quit();
   });
   
