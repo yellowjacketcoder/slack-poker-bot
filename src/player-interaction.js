@@ -61,7 +61,7 @@ class PlayerInteraction {
 
     // Look for text that conforms to a player action.
     let playerAction = messages.where(e => e.user === player.id)
-      .map(e => PlayerInteraction.actionFromMessage(e.text, availableActions))
+      .map(e => PlayerInteraction.actionFromMessage(e.text, availableActions, player))
       .where(action => action !== null)
       .publish();
 
@@ -188,10 +188,11 @@ class PlayerInteraction {
   //
   // text - The text that the player entered
   // availableActions - An array of the actions available to this player
+  // player - player object (only needed for handling allin case)
   //
   // Returns an object representing the action, with keys for the name and
   // bet amount, or null if the input was invalid.
-  static actionFromMessage(text, availableActions) {
+  static actionFromMessage(text, availableActions, player=null) {
     if (!text) return null;
 
     let input = text.trim().toLowerCase().split(/\s+/);
@@ -223,6 +224,11 @@ class PlayerInteraction {
     case 'raise':
       name = 'raise';
       amount = input[1] ? parseInt(input[1]) : NaN;
+      break;
+    case 'allin':
+      name = availableActions[1];
+      //TODO: this isn't quite right if you're the blinds and you go allin pre-flop 
+      amount = player.chips;
       break;
     default:
       return null;
