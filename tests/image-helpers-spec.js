@@ -23,42 +23,99 @@ var mockUpload = function(outputFile) {
 describe('ImageHelpers', function() {
   describe('the createBoardImage method', function() {
     it('should be able to create images for the flop, turn, and river', function(done) {
+      var completions = new rx.Subject();
+      
       var nineClubs = new Card('9', 'Clubs');
       var fourSpades = new Card('4', 'Spades');
       var kingDiamonds = new Card('K', 'Diamonds');
       var aceHearts = new Card('A', 'Hearts');
       var sevenSpades = new Card('7', 'Spades');
 
-      ImageHelpers.createBoardImage(
+      let flop = ImageHelpers.createBoardImage(
         [nineClubs, fourSpades, kingDiamonds],
         mockUpload,
-      ).subscribe(function() {
+      );
+      
+      flop.subscribe(function() {
+        console.log('JIMPing Flop');
         jimp.read('./output/flop.png').then(img => {
           assert(img.bitmap.width === cardSize.width * 3);
           assert(img.bitmap.height === cardSize.height);
-        });
+          completions.onNext('Flop tested');
+        })
+        .catch(err => {
+          console.error("Flop jimp.read() failed with:\n%s", err);
+          //completions.onNext('Flop failed');
+          assert(false, "Flop failed to jimp.read");
+      });
+      }, err => {
+        console.error("Flop failed with:\n%s", err);
+        //completions.onNext('Flop failed');
+        assert(false, "Flop failed");
       });
 
-      ImageHelpers.createBoardImage(
+
+      let turn = ImageHelpers.createBoardImage(
         [nineClubs, fourSpades, kingDiamonds, aceHearts],
         mockUpload,
-      ).subscribe(function() {
+      );
+      
+      turn.subscribe(function() {
+        console.log('JIMPing Turn');
         jimp.read('./output/turn.png').then(img => {
+          console.log('Testing Turn');
           assert(img.bitmap.width === cardSize.width * 4);
           assert(img.bitmap.height === cardSize.height);
+          completions.onNext('Turn tested');
+        })
+        .catch(err => {
+          console.error("Turn jimp.read() failed with:\n%s", err);
+          //completions.onNext('Turn failed');
+          assert(false, "Turn failed to jimp.read");
         });
+      }, err => {
+        console.error("Turn failed with:\n%s", err);
+        //completions.onNext('Turn failed');
+        assert(false, "Turn failed");
       });
 
-      ImageHelpers.createBoardImage(
+      let river = ImageHelpers.createBoardImage(
         [nineClubs, fourSpades, kingDiamonds, aceHearts, sevenSpades],
         mockUpload,
-      ).subscribe(function() {
+      );
+      
+      river.subscribe(function() {
+        console.log('JIMPing River');
         jimp.read('./output/river.png').then(img => {
+          console.log('Testing River');
           assert(img.bitmap.width === cardSize.width * 5);
           assert(img.bitmap.height === cardSize.height);
-          done();
+          completions.onNext('River tested');
+        })
+        .catch(err => {
+          console.error("River jimp.read() failed with:\n%s", err);
+            //completions.onNext('River failed');
+            assert(false, "River failed to jimp.read");
+          });
+        }, err => {
+          console.error("River failed with:\n%s", err);
+          //completions.onNext('River failed');
+          assert(false, "River failed");
         });
-      });
+      
+
+      // wait for all three to finish before we are done.
+      var count = 0;
+      completions.take(3).do( ()=> done());
+      
+      /* subscribe(x => {
+        console.log(x);
+        count++
+        if (count == 3) {
+          console.log("Finished");
+          done();
+        }
+      }); */
       
     });
   });

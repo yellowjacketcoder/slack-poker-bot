@@ -5,9 +5,9 @@ const imgur = require('imgur');
 const promisify = require('promisify-node');
 
 class ImageHelpers {
+
   // Public: Creates an image of the board from the given cards using the
-  // light-weight image processing library (`lwip`), then writes the result to
-  // a file and uploads it to `imgur`.
+  // jimp, then writes the result to a file and uploads it to `imgur`.
   //
   // imageFiles - An array of three image files
   // outputFile - The file where the result will be saved
@@ -27,31 +27,39 @@ class ImageHelpers {
     let imagePath = null;
     switch (cards.length) {
       case 3:
-        makeImage = ImageHelpers.combineThree(imageFiles, './output/flop.png');
+        makeImage = ImageHelpers.combineThree(imageFiles, './output/flop.png'
+        ).then(outputFile => {
+          console.log('Flop done');
+        });
+
         imagePath = './output/flop.png';
         break;
       case 4:
         makeImage = ImageHelpers.combineThree(
           imageFiles,
-          './output/flop.png',
-        ).then(outputFile =>
-          ImageHelpers.combineTwo(
+          './output/turn_flop.png',
+        ).then(outputFile => {
+          console.log('Turn part 1 done. Turn part 2 now');
+          return ImageHelpers.combineTwo(
             [outputFile, imageFiles[3]],
             './output/turn.png',
-          ),
+          )}
         );
+
         imagePath = './output/turn.png';
         break;
       case 5:
         makeImage = ImageHelpers.combineThree(
           imageFiles,
-          './output/flop.png',
-        ).then(outputFile =>
-          ImageHelpers.combineThree(
+          './output/river_flop.png',
+        ).then(outputFile => {
+          console.log('River part 1 done. River part 2 now');
+          return ImageHelpers.combineThree(
             [outputFile, imageFiles[3], imageFiles[4]],
             './output/river.png',
-          ),
+          )}
         );
+        
         imagePath = './output/river.png';
         break;
       default:
@@ -61,12 +69,17 @@ class ImageHelpers {
     }
 
     makeImage
-      .then(outputFile => upload(imagePath))
+      .then(outputFile => {
+        console.log("Uploading file"+imagePath);
+        return upload(imagePath)
+      })
       .then(result => {
         subj.onNext(result.data.link);
         subj.onCompleted();
       })
-      .catch(err => subj.onError(err));
+      .catch(err => {
+        subj.onError(err)
+      });
 
     return subj;
   }
