@@ -14,7 +14,7 @@ describe('TexasHoldem', function() {
     messages = new rx.Subject();
     channel = {
       send: function(message) {
-        //console.log(message);
+        console.log(message);
         return { updateMessage: function() { } };
       }
     };
@@ -25,7 +25,7 @@ describe('TexasHoldem', function() {
     slackWeb = { token: 0xDEADBEEF };
     slackRTM = {
       sendMessage: async function(message) { 
-        //console.log(message);
+        console.log(message);
         return { ts: false} 
       }
     };
@@ -52,7 +52,7 @@ describe('TexasHoldem', function() {
     _.extend(game, gameConfig);
 
     var emptyDm = { send: function(message) { 
-      //console.log(message);
+      console.log(message);
       }
     };
 
@@ -61,7 +61,7 @@ describe('TexasHoldem', function() {
     // We don't want to create any images during tests, so just have this
     // function write to the console.
     game.postBoard = function(round) {
-      //console.log("Dealing the " + round + ": " + game.board.toString());
+      console.log("Dealing the " + round + ": " + game.board.toString());
       return rx.Observable.return(true);
     };
 
