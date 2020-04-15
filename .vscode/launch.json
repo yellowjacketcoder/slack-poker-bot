@@ -18,19 +18,6 @@
             "type": "node",
             "request": "launch",
             "name": "Mocha Tests",
-            "program": "${workspaceFolder}/node_modules/gulp/bin/gulp.js",
-            "args": [
-                "default"
-            ],
-            "skipFiles": [
-                "<node_internals>/**"
-            ],
-            "internalConsoleOptions": "openOnSessionStart"
-        },
-        {
-            "type": "node",
-            "request": "launch",
-            "name": "Mocha Tests 2",
             "program": "${workspaceFolder}/node_modules/mocha/bin/mocha",
             "args": [
                 "${workspaceFolder}/tests/*"
@@ -39,6 +26,20 @@
             "skipFiles": [
                 "<node_internals>/**"
             ]
+        },
+
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Mocha JIMP test",
+            "program": "${workspaceFolder}/node_modules/mocha/bin/mocha",
+            "args": [
+                "${workspaceFolder}/tests/image-helpers-spec.js"
+            ],
+            "internalConsoleOptions": "openOnSessionStart",
+            "skipFiles": [
+                "<node_internals>/**"
+            ]
         }
-    ]
+   ]
 }

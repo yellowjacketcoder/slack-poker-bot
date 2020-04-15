@@ -6,7 +6,7 @@ gulp.task('default', function () {
     .pipe(mocha({reporter: 'spec'}));
 });
 
-gulp.task('jtest', function () {
+gulp.task('jimp', function () {
   return gulp.src('tests/image-helpers-spec.js', {read: false})
     .pipe(mocha({reporter: 'spec'}));
 });

@@ -29,7 +29,7 @@ class ImageHelpers {
       case 2:
         makeImage = ImageHelpers.combineTwo(imageFiles, './output/hand.png'
         ).then(outputFile => {
-          console.log('Hand done');
+          console.log('Hand rendered');
         });
 
         imagePath = './output/hand.png';
@@ -37,7 +37,7 @@ class ImageHelpers {
       case 3:
         makeImage = ImageHelpers.combineThree(imageFiles, './output/flop.png'
         ).then(outputFile => {
-          console.log('Flop done');
+          console.log('Flop rendered');
         });
 
         imagePath = './output/flop.png';
@@ -47,11 +47,13 @@ class ImageHelpers {
           imageFiles,
           './output/turn_flop.png',
         ).then(outputFile => {
-          console.log('Turn part 1 done. Turn part 2 now');
+          console.log('Turn part 1 rendered. Turn part 2 now');
           return ImageHelpers.combineTwo(
             [outputFile, imageFiles[3]],
             './output/turn.png',
-          )}
+          ).then(outputFile => {
+            console.log('Turn rendered');
+          })}
         );
 
         imagePath = './output/turn.png';
@@ -65,7 +67,9 @@ class ImageHelpers {
           return ImageHelpers.combineThree(
             [outputFile, imageFiles[3], imageFiles[4]],
             './output/river.png',
-          )}
+          ).then(outputFile => {
+            console.log('River rendered');
+          })}
         );
         
         imagePath = './output/river.png';
@@ -78,15 +82,14 @@ class ImageHelpers {
 
     makeImage
       .then(outputFile => {
-        console.log("Uploading file"+imagePath);
-        return upload(imagePath)
+        return upload(imagePath);
       })
       .then(result => {
         subj.onNext(result.data.link);
         subj.onCompleted();
       })
       .catch(err => {
-        subj.onError(err)
+        subj.onError(err);
       });
 
     return subj;

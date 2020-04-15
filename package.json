@@ -11,16 +11,16 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "chai": "^2.2.0",
+    "chai": "~4.2",
     "gulp": "^4.0.2",
     "gulp-mocha": "^7.0.2",
     "mocha": "^7.1.1"
   },
   "dependencies": {
-    "@slack/client": "^4.8.0",
+    "@slack/client": "~5.0",
     "babel-cli": "^6.26.0",
     "imgur": "^0.3.1",
-    "jimp": "^0.10.0",
+    "jimp": "^0.10.2",
     "poker-evaluator": "^0.3.1",
     "promisify-node": "^0.5.0",
     "rx": "^4.1.0",
