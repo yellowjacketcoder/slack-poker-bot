@@ -37,9 +37,9 @@ describe('ImageHelpers', function() {
       );
       
       flop.subscribe(function() {
-        console.log('JIMPing Flop');
-        completions.onNext('Flop tested');
-        /*         jimp.read('./output/flop.png').then(img => {
+        //console.log('JIMPing Flop');
+        jimp.read('./output/flop.png')
+        .then(img => {
           assert(img.bitmap.width === cardSize.width * 3);
           assert(img.bitmap.height === cardSize.height);
         })
@@ -47,12 +47,14 @@ describe('ImageHelpers', function() {
           console.error("Flop jimp.read() failed with:\n%s", err);
           //completions.onNext('Flop failed');
           assert(false, "Flop failed to jimp.read");
-        }); */
-        }, err => {
-        console.error("Flop failed with:\n%s", err);
-        //completions.onNext('Flop failed');
-        assert(false, "Flop failed");
-      });
+        });
+        completions.onNext('Flop tested');
+        },
+        err => {
+          console.error("Flop failed with:\n%s", err);
+          //completions.onNext('Flop failed');
+          assert(false, "Flop failed");
+        });
 
 
       let turn = ImageHelpers.createBoardImage(
@@ -60,20 +62,20 @@ describe('ImageHelpers', function() {
         mockUpload,
       );
       
-      turn.subscribe(function() {
-        console.log('JIMPing Turn');
-        completions.onNext('Turn tested');
-        /* jimp.read('./output/turn.png').then(img => {
-          console.log('Testing Turn');
+      turn.subscribe(function () {
+        //console.log('JIMPing Turn');
+        jimp.read('./output/turn.png').then(img => {
+          //console.log('Testing Turn');
           assert(img.bitmap.width === cardSize.width * 4);
           assert(img.bitmap.height === cardSize.height);
         })
-        .catch(err => {
-          console.error("Turn jimp.read() failed with:\n%s", err);
-          //completions.onNext('Turn failed');
-          assert(false, "Turn failed to jimp.read");
-        }); */
-        }, err => {
+          .catch(err => {
+            console.error("Turn jimp.read() failed with:\n%s", err);
+            //completions.onNext('Turn failed');
+            assert(false, "Turn failed to jimp.read");
+          });
+        completions.onNext('Turn tested');
+      }, err => {
         console.error("Turn failed with:\n%s", err);
         //completions.onNext('Turn failed');
         assert(false, "Turn failed");
@@ -84,34 +86,33 @@ describe('ImageHelpers', function() {
         mockUpload,
       );
       
-      river.subscribe(function() {
-        console.log('JIMPing River');
-        completions.onNext('River tested');
-        /*         jimp.read('./output/river.png').then(img => {
+      river.subscribe(function () {
+        //console.log('JIMPing River');
+        jimp.read('./output/river.png').then(img => {
           console.log('Testing River');
           assert(img.bitmap.width === cardSize.width * 5);
           assert(img.bitmap.height === cardSize.height);
         })
-        .catch(err => {
-          console.error("River jimp.read() failed with:\n%s", err);
+          .catch(err => {
+            console.error("River jimp.read() failed with:\n%s", err);
             //completions.onNext('River failed');
             assert(false, "River failed to jimp.read");
           });
- */        
-          }, err => {
-          console.error("River failed with:\n%s", err);
-          //completions.onNext('River failed');
-          assert(false, "River failed");
-        });
+        completions.onNext('River tested');
+      }, err => {
+        console.error("River failed with:\n%s", err);
+        //completions.onNext('River failed');
+        assert(false, "River failed");
+      });
       
 
       // wait for all three to finish before we are done.
       var count = 0;
       completions.subscribe(x => {
-        console.log(x);
+        //console.log(x);
         count++
         if (count == 3) {
-          console.log("Finished");
+          //console.log("Finished");
           done();
         }
       });

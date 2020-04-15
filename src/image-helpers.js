@@ -3,6 +3,7 @@ const rx = require('rx');
 const jimp = require('jimp');
 const imgur = require('imgur');
 const promisify = require('promisify-node');
+const tmp = require('tmp');
 
 class ImageHelpers {
 
@@ -19,60 +20,62 @@ class ImageHelpers {
     let subj = new rx.AsyncSubject();
     let imageFiles = cards.map(c => `resources/${c.toAsciiString()}.png`);
 
-    if (!fs.existsSync('./output')) {
-      fs.mkdirSync('./output');
-    }
+    // create a tmp dir that will auto-cleanup all files plus itself
+    // on node process exit
+    let output_dir = tmp.dirSync({unsafeCleanup:true});
+    tmp.setGracefulCleanup();
+    //console.log('output_dir: ', output_dir.name);
 
     let makeImage = null;
     let imagePath = null;
     switch (cards.length) {
       case 2:
-        makeImage = ImageHelpers.combineTwo(imageFiles, './output/hand.png'
-        ).then(outputFile => {
+        imagePath = output_dir.name+'/hand.png';
+        makeImage = ImageHelpers.combineTwo(imageFiles, imagePath);
+        /* .then(outputFile => {
           console.log('Hand rendered');
-        });
+        }); */
 
-        imagePath = './output/hand.png';
         break;
       case 3:
-        makeImage = ImageHelpers.combineThree(imageFiles, './output/flop.png'
-        ).then(outputFile => {
+        imagePath = output_dir.name+'/flop.png';
+        makeImage = ImageHelpers.combineThree(imageFiles, imagePath);
+        /* .then(outputFile => {
           console.log('Flop rendered');
-        });
+        }); */
 
-        imagePath = './output/flop.png';
         break;
       case 4:
+        imagePath =  output_dir.name+'/turn.png';
         makeImage = ImageHelpers.combineThree(
           imageFiles,
-          './output/turn_flop.png',
+          output_dir.name+'/turn_flop.png',
         ).then(outputFile => {
-          console.log('Turn part 1 rendered. Turn part 2 now');
+          //console.log('Turn part 1 rendered. Turn part 2 now');
           return ImageHelpers.combineTwo(
             [outputFile, imageFiles[3]],
-            './output/turn.png',
-          ).then(outputFile => {
-            console.log('Turn rendered');
-          })}
-        );
+            imagePath);
+            /* .then(outputFile => {
+              console.log('Turn rendered');
+            })} */
+          });
 
-        imagePath = './output/turn.png';
         break;
       case 5:
+        imagePath = output_dir.name+'/river.png';
         makeImage = ImageHelpers.combineThree(
           imageFiles,
-          './output/river_flop.png',
+          output_dir.name+'/river_flop.png',
         ).then(outputFile => {
-          console.log('River part 1 done. River part 2 now');
+          //console.log('River part 1 done. River part 2 now');
           return ImageHelpers.combineThree(
             [outputFile, imageFiles[3], imageFiles[4]],
-            './output/river.png',
-          ).then(outputFile => {
-            console.log('River rendered');
-          })}
-        );
+            imagePath);
+            /* .then(outputFile => {
+              console.log('River rendered');
+            })} */
+          });
         
-        imagePath = './output/river.png';
         break;
       default:
         throw new Error(
@@ -114,14 +117,18 @@ class ImageHelpers {
         images.push(secondImage);
         return new jimp(
           images[0].bitmap.width + images[1].bitmap.width,
-          images[0].bitmap.height,
-        );
+          images[0].bitmap.height);
       })
-      .then(destImage => destImage.composite(images[0], 0, 0))
-      .then(destImage =>
-        destImage.composite(images[1], images[0].bitmap.width, 0),
-      )
-      .then(destImage => destImage.write(outputFile));
+      .then(destImage => { 
+          destImage.composite(images[0], 0, 0);
+          destImage.composite(images[1], images[0].bitmap.width, 0);
+          return destImage.writeAsync(outputFile)
+            .then(() => { 
+              //console.log(`Output written ${outputFile}`)
+              return outputFile;
+            });
+      });
+      //.catch(err => console.error("combineTwo failed with:\n%s", err));
   }
 
   // Private: Combines three images files into a single row, using the
@@ -132,9 +139,10 @@ class ImageHelpers {
   //
   // Returns a {Promise} of the resulting file
   static combineThree(imageFiles, outputFile) {
-    return ImageHelpers.combineTwo(imageFiles.slice(0, 2), outputFile).then(
-      () => ImageHelpers.combineTwo([outputFile, imageFiles[2]], outputFile),
-    );
+    let tempfile = outputFile+"_first.png";
+    return ImageHelpers.combineTwo(imageFiles.slice(0, 2), tempfile)
+      .then(() => { return ImageHelpers.combineTwo([tempfile, imageFiles[2]], outputFile)})
+      .catch(err => console.error("combineThree failed with:\n%s", err));
   }
 }
 
