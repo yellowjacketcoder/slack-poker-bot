@@ -23,7 +23,8 @@ class Bot {
       start_game_timeout: 20, 
       bots: 1,
       smallblind: 4,
-      initialstash: 2000
+      initialstash: 2000,
+      show_card_images: false
     };
 
     this.gameConfigDescs = {
@@ -32,7 +33,8 @@ class Bot {
       start_game_timeout: `How many seconds to wait for players to sign up before starting the game. (default ${this.gameConfig.start_game_timeout})`,
       bots: `Set this to 1 to include autobot players for testing (default ${this.gameConfig.bots})`,
       smallblind: `Initial small blind. (default ${this.gameConfig.smallblind})`,
-      initialstash: `Starting value of chips for each player. (default ${this.gameConfig.initialstash})`
+      initialstash: `Starting value of chips for each player. (default ${this.gameConfig.initialstash})`,
+      show_card_images: `Display images of cards. (default ${this.gameConfig.show_card_images})`
     }
 
     this.isGameRunning = {};

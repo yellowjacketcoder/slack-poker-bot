@@ -26,6 +26,14 @@ class ImageHelpers {
     let makeImage = null;
     let imagePath = null;
     switch (cards.length) {
+      case 2:
+        makeImage = ImageHelpers.combineTwo(imageFiles, './output/hand.png'
+        ).then(outputFile => {
+          console.log('Hand done');
+        });
+
+        imagePath = './output/hand.png';
+        break;
       case 3:
         makeImage = ImageHelpers.combineThree(imageFiles, './output/flop.png'
         ).then(outputFile => {

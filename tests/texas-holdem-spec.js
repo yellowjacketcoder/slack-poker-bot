@@ -36,7 +36,8 @@ describe('TexasHoldem', function() {
       start_game_timeout: 60, 
       bots: 0,
       smallblind: 4,
-      initialstash: 400
+      initialstash: 400,
+      show_card_images: false
     };
       
     players = [

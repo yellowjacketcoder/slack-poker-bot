@@ -504,13 +504,59 @@ class TexasHoldem {
       this.playerHands[player.id].push(card);
 
       if (!player.isBot) {
-        let dm = this.playerDms[player.id];
-        this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);
+        this.sendPlayerHand(player).subscribe(() => {
+          console.log(`Sent hand to player ${player.name}`);
+        });
       } else {
         player.holeCards = this.playerHands[player.id];
       }
     }
   }
+
+
+  // Private: send a DM to the player with their cards
+  // returns: Observable
+
+  sendPlayerHand(player) {
+    let dm = this.playerDms[player.id];
+
+    if (this.gameConfig.show_card_images) {
+      return ImageHelpers.createBoardImage(this.playerHands[player.id])
+      .timeout(4000)
+      .flatMap(url => {
+        let message = {
+          as_user: true,
+          channel: dm
+        };
+
+        message.attachments = [{
+          title: `Your hand is:`,
+          fallback: this.playerHands[player.id],
+          text: this.playerHands[player.id],
+          color: 'good',
+          image_url: url,
+          channel: dm
+        }];
+
+        this.slackWeb.chat.postMessage(message);
+
+        // NB: Since we don't have a callback for the message arriving, we're
+        // just going to wait a second before continuing.
+        return rx.Observable.timer(1000, this.scheduler);
+      })
+      .take(1)
+      .catch(() => {
+        console.error('Creating hand image timed out');
+        this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);
+        return rx.Observable.timer(1000, this.scheduler);
+      });
+    }
+    else {
+      this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);
+      return rx.Observable.timer(1000, this.scheduler);
+    }
+  }
+
 
   // Private: Creates an image of the cards on board and posts it to the
   // channel using `message.attachments`.
