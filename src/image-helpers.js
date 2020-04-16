@@ -98,6 +98,11 @@ class ImageHelpers {
     return subj;
   }
 
+  // Convenience wrapper for creating a playerHand image
+  static createPlayerHandImage(cards, upload = imgur.uploadFile) {
+    return this.createBoardImage(cards, upload);
+  }
+  
   // Private: Combines two image files into a single row
   //
   // imageFiles - An array of two image files

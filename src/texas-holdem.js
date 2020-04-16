@@ -521,7 +521,7 @@ class TexasHoldem {
     let dm = this.playerDms[player.id];
 
     if (this.gameConfig.show_card_images) {
-      return ImageHelpers.createBoardImage(this.playerHands[player.id])
+      return ImageHelpers.createPlayerHandImage(this.playerHands[player.id])
       .timeout(4000)
       .flatMap(url => {
         let message = {
