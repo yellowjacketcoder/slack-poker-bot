@@ -15,12 +15,39 @@ var cardSize = {width: 250, height: 363};
 var mockUpload = function(outputFile) {
   return new Promise(function(resolve, reject) {
     resolve({
-      data: {link: 'lol.not.real'},
+      data: {link: outputFile},
     });
   });
 };
 
 describe('ImageHelpers', function() {
+  describe('the create player hand', function() {
+    it('should be able to create a two card hand image', function(done) {
+      var kingDiamonds = new Card('K', 'Diamonds');
+      var aceHearts = new Card('A', 'Hearts');
+
+      let hand = ImageHelpers.createPlayerHandImage([kingDiamonds, aceHearts], mockUpload);
+      hand.subscribe(output_file => {
+        //console.log(`JIMPing Hand file ${output_file}`);
+        jimp.read(output_file)
+        .then(img => {
+          assert(img.bitmap.width === cardSize.width * 2, "Hand image width check failed");
+          assert(img.bitmap.height === cardSize.height, "Hand image height check failed");
+          done();
+        })
+        .catch(err => {
+          console.error("Hand jimp.read() failed with:\n%s", err);
+          assert(false, "Hand failed to jimp.read");
+        });
+        },
+        err => {
+          console.error("Hand failed with:\n%s", err);
+          assert(false, "Hand failed");
+        }); 
+
+    });
+  });
+
   describe('the createBoardImage method', function() {
     it('should be able to create images for the flop, turn, and river', function(done) {
       var completions = new rx.Subject();
@@ -36,19 +63,19 @@ describe('ImageHelpers', function() {
         mockUpload,
       );
       
-      flop.subscribe(function() {
+      flop.subscribe(output_file => {
         //console.log('JIMPing Flop');
-        jimp.read('./output/flop.png')
+        jimp.read(output_file)
         .then(img => {
           assert(img.bitmap.width === cardSize.width * 3);
           assert(img.bitmap.height === cardSize.height);
+          completions.onNext('Flop tested');
         })
         .catch(err => {
           console.error("Flop jimp.read() failed with:\n%s", err);
           //completions.onNext('Flop failed');
           assert(false, "Flop failed to jimp.read");
         });
-        completions.onNext('Flop tested');
         },
         err => {
           console.error("Flop failed with:\n%s", err);
@@ -58,23 +85,24 @@ describe('ImageHelpers', function() {
 
 
       let turn = ImageHelpers.createBoardImage(
-        [kingDiamonds, aceHearts, nineClubs, fourSpades],
+        [nineClubs, fourSpades, kingDiamonds, aceHearts],
         mockUpload,
       );
       
-      turn.subscribe(function () {
+      turn.subscribe(output_file => {
         //console.log('JIMPing Turn');
-        jimp.read('./output/turn.png').then(img => {
+        jimp.read(output_file)
+        .then(img => {
           //console.log('Testing Turn');
           assert(img.bitmap.width === cardSize.width * 4);
           assert(img.bitmap.height === cardSize.height);
+          completions.onNext('Turn tested');
         })
-          .catch(err => {
-            console.error("Turn jimp.read() failed with:\n%s", err);
-            //completions.onNext('Turn failed');
-            assert(false, "Turn failed to jimp.read");
-          });
-        completions.onNext('Turn tested');
+        .catch(err => {
+          console.error("Turn jimp.read() failed with:\n%s", err);
+          //completions.onNext('Turn failed');
+          assert(false, "Turn failed to jimp.read");
+        });
       }, err => {
         console.error("Turn failed with:\n%s", err);
         //completions.onNext('Turn failed');
@@ -82,23 +110,24 @@ describe('ImageHelpers', function() {
       });
 
       let river = ImageHelpers.createBoardImage(
-        [nineClubs, aceHearts, sevenSpades, fourSpades, kingDiamonds],
+        [nineClubs, fourSpades, kingDiamonds, aceHearts, sevenSpades],
         mockUpload,
       );
       
-      river.subscribe(function () {
+      river.subscribe(output_file => {
         //console.log('JIMPing River');
-        jimp.read('./output/river.png').then(img => {
-          console.log('Testing River');
+        jimp.read(output_file)
+        .then(img => {
+          //console.log('Testing River');
           assert(img.bitmap.width === cardSize.width * 5);
           assert(img.bitmap.height === cardSize.height);
+          completions.onNext('River tested');
         })
-          .catch(err => {
-            console.error("River jimp.read() failed with:\n%s", err);
-            //completions.onNext('River failed');
-            assert(false, "River failed to jimp.read");
-          });
-        completions.onNext('River tested');
+        .catch(err => {
+          console.error("River jimp.read() failed with:\n%s", err);
+          //completions.onNext('River failed');
+          assert(false, "River failed to jimp.read");
+        });
       }, err => {
         console.error("River failed with:\n%s", err);
         //completions.onNext('River failed');
@@ -113,6 +142,9 @@ describe('ImageHelpers', function() {
         count++
         if (count == 3) {
           //console.log("Finished");
+          flop.dispose();
+          turn.dispose();
+          river.dispose();
           done();
         }
       });
