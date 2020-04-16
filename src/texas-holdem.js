@@ -520,7 +520,7 @@ class TexasHoldem {
   sendPlayerHand(player) {
     let dm = this.playerDms[player.id];
 
-    if (this.gameConfig.show_card_images) {
+    if (this.gameConfig.show_card_images==1) {
       return ImageHelpers.createPlayerHandImage(this.playerHands[player.id])
       .timeout(4000)
       .flatMap(url => {
@@ -565,39 +565,47 @@ class TexasHoldem {
   //
   // Returns an {Observable} indicating completion
   postBoard(round) {
-    return ImageHelpers.createBoardImage(this.board)
-    .timeout(10000)
-    .flatMap(url => {
-      let message = {
-        //text: `Dealing the ${round}:\n${this.board.toString()}`,
-        as_user: true,
-        channel: this.channel
-      };
+    if (this.gameConfig.show_card_images==1) {
+      return ImageHelpers.createBoardImage(this.board)
+      .timeout(10000)
+      .flatMap(url => {
+        let message = {
+          //text: `Dealing the ${round}:\n${this.board.toString()}`,
+          as_user: true,
+          channel: this.channel
+        };
 
-      message.attachments = [{
-        title: `Dealing the ${round}:`,
-        fallback: this.board.toString(),
-        text: this.board.toString(),
-        color: 'good',
-        image_url: url,
-        channel: this.channel
-      }];
+        message.attachments = [{
+          title: `Dealing the ${round}:`,
+          fallback: this.board.toString(),
+          text: this.board.toString(),
+          color: 'good',
+          image_url: url,
+          channel: this.channel
+        }];
 
-      this.slackWeb.chat.postMessage(message);
+        this.slackWeb.chat.postMessage(message);
 
-      // NB: Since we don't have a callback for the message arriving, we're
-      // just going to wait a second before continuing.
-      return rx.Observable.timer(1000, this.scheduler);
-    })
-    .take(1)
-    .catch(() => {
-      console.error('Creating board image timed out');
+        // NB: Since we don't have a callback for the message arriving, we're
+        // just going to wait a second before continuing.
+        return rx.Observable.timer(1000, this.scheduler);
+      })
+      .take(1)
+      .catch(() => {
+        console.error('Creating board image timed out');
 
+        let message = `Dealing the ${round}:\n${this.board.toString()}`;
+        this.slackRTM.sendMessage(message, this.channel);
+
+        return rx.Observable.timer(1000, this.scheduler);
+      });
+    }
+    else {
       let message = `Dealing the ${round}:\n${this.board.toString()}`;
       this.slackRTM.sendMessage(message, this.channel);
 
       return rx.Observable.timer(1000, this.scheduler);
-    });
+    }
   }
 
   // Private: Posts a message to the channel describing a player's action.
