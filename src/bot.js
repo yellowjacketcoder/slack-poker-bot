@@ -19,9 +19,9 @@ class Bot {
     this.slackRTM = new RTMClient(token);
 
     this.gameConfig = { 
-      timeout: 45, 
+      timeout: 60, 
       maxplayers: 25, 
-      start_game_timeout: 5, 
+      start_game_timeout: 20, 
       bots: 2,
       smallblind: 1,
       initialstash: 100,
