@@ -519,6 +519,14 @@ class TexasHoldem {
 
   sendPlayerHand(player) {
     let dm = this.playerDms[player.id];
+    
+    this.slackWeb.conversations.open({users:player.id,return_im:true})
+      .then((res) => {
+        dm = res.channel.id
+    }).catch((err) => {
+      console.log(err)
+    });
+    
 
     if (this.gameConfig.show_card_images==1) {
       return ImageHelpers.createPlayerHandImage(this.playerHands[player.id])
@@ -538,7 +546,7 @@ class TexasHoldem {
           channel: dm
         }];
 
-        this.slackWeb.chat.postMessage(message);
+        this.slackWeb.chat.postMessage(message).then((res)=>{this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);});
 
         // NB: Since we don't have a callback for the message arriving, we're
         // just going to wait a second before continuing.
