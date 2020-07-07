@@ -1,7 +1,8 @@
 const rx = require('rx');
 const _ = require('underscore-plus');
 
-const { RTMClient, WebClient } = require('@slack/client');
+const {RTMClient} = require('@slack/rtm-api');
+const {WebClient} = require('@slack/web-api');
 const TexasHoldem = require('./texas-holdem');
 const MessageHelpers = require('./message-helpers');
 const PlayerInteraction = require('./player-interaction');
@@ -20,11 +21,11 @@ class Bot {
     this.gameConfig = { 
       timeout: 45, 
       maxplayers: 25, 
-      start_game_timeout: 20, 
-      bots: 0,
-      smallblind: 4,
-      initialstash: 2000,
-      show_card_images: 0
+      start_game_timeout: 5, 
+      bots: 2,
+      smallblind: 1,
+      initialstash: 100,
+      show_card_images: 1 
     };
 
     this.gameConfigDescs = {
@@ -287,10 +288,10 @@ class Bot {
   //
   // players - The players participating in the game
   addBotPlayers(players) {
-    let bot1 = new WeakBot('Phil Hellmuth');
+    let bot1 = new WeakBot('Tim Cook');
     players.push(bot1);
 
-    let bot2 = new AggroBot('Phil Ivey');
+    let bot2 = new AggroBot('Sundar Pichai');
     players.push(bot2);
   }
 
@@ -309,12 +310,12 @@ class Bot {
         console.log(error);
       });
 
-
-    this.slackWeb.channels.list()
+    this.slackWeb.conversations.list()
       .then((res) => {
         // `res` contains information about the channels
         //res.channels.forEach(c => console.log(c.name, c.is_member));
         this.channels = _.filter(res.channels, c => c.is_member);
+        this.dms = _.filter(res.channels, c => c.is_im);
         if (this.channels.length > 0) {
           console.log(`You are in: ${this.channels.map(c => c.name).join(', ')}`);
         } else {
@@ -322,27 +323,6 @@ class Bot {
         }
       })
       .catch(console.error);
-
-    this.slackWeb.groups.list()
-      .then((res) => {
-        // `res` contains information about the channels
-        res.groups.forEach(g => console.log(g.name, g.is_archived));
-        this.groups = _.filter(res.groups, g => !g.is_archived);
-        if (this.groups.length > 0) {
-          console.log(`As well as: ${this.groups.map(g => g.name).join(', ')}`);
-        }
-      })
-      .catch(console.error);
-
-    this.slackWeb.im.list()
-      .then((res) => {
-        this.dms = res.ims;
-        if (this.dms.length > 0) {
-          console.log(`Your open DM's: ${this.dms.map(dm => dm.id).join(', ')}`);
-        }
-      })
-      .catch(console.error);
-
   }
 }
 

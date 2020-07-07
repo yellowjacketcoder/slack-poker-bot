@@ -17,7 +17,8 @@
     "mocha": "^7.1.1"
   },
   "dependencies": {
-    "@slack/client": "~5.0",
+    "@slack/web-api": "^5.10.0",
+    "@slack/rtm-api": "^5.0.5",
     "babel-cli": "^6.26.0",
     "imgur": "^0.3.1",
     "jimp": "^0.10.2",
