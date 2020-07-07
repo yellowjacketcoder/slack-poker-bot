@@ -519,7 +519,7 @@ class TexasHoldem {
 
   sendPlayerHand(player) {
     let dm = this.playerDms[player.id];
-    
+
     this.slackWeb.conversations.open({users:player.id,return_im:true})
       .then((res) => {
         dm = res.channel.id

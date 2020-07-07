@@ -21,8 +21,8 @@ class Bot {
     this.gameConfig = { 
       timeout: 60, 
       maxplayers: 25, 
-      start_game_timeout: 20, 
-      bots: 2,
+      start_game_timeout: 3, 
+      bots: 1,
       smallblind: 1,
       initialstash: 100,
       show_card_images: 1 
@@ -288,10 +288,10 @@ class Bot {
   //
   // players - The players participating in the game
   addBotPlayers(players) {
-    let bot1 = new WeakBot('Tim Cook');
+    let bot1 = new WeakBot('PPE');
     players.push(bot1);
 
-    let bot2 = new AggroBot('Sundar Pichai');
+    let bot2 = new AggroBot('Aura');
     players.push(bot2);
   }
 
