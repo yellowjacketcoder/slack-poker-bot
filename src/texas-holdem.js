@@ -520,6 +520,8 @@ class TexasHoldem {
   sendPlayerHand(player) {
     let dm = this.playerDms[player.id];
 
+    // TODO: This needs to be wrapping the return rx observable type in order 
+    // to ensure the message is sent before continuing, right now it's a race condition
     this.slackWeb.conversations.open({users:player.id,return_im:true})
       .then((res) => {
         dm = res.channel.id
