@@ -26,7 +26,7 @@ class TexasHoldem {
 
     // copy gameconfig to allow each game to be distinct
     this.gameConfig = Object.assign( {}, gameConfig);
-    
+
     this.smallBlind = this.gameConfig.smallblind;
     this.bigBlind = this.smallBlind * 2;
     this.potManager = new PotManager(this.channel, players, this.smallBlind);
@@ -445,7 +445,7 @@ class TexasHoldem {
         if (!result.isHandComplete) {
           // console.log('Showdown Last', result.lastPlayer);
           //console.log('Showdown Order', PlayerOrder.determine(this.players, this.dealerButton, 'showdown'));
-          //TODO if all in show end 
+          //TODO if all in show end
           //TODO if first after last player action, show hand
           let playersRemaining = _.filter(this.players, p => p.isInHand && p.isInRound);
           let currentIndex = playersRemaining.indexOf(result.lastPlayer);
@@ -520,51 +520,54 @@ class TexasHoldem {
   sendPlayerHand(player) {
     let dm = this.playerDms[player.id];
 
-    // TODO: This needs to be wrapping the return rx observable type in order 
-    // to ensure the message is sent before continuing, right now it's a race condition
-    this.slackWeb.conversations.open({users:player.id,return_im:true})
-      .then((res) => {
-        dm = res.channel.id
-    }).catch((err) => {
-      console.log(err)
-    });
-    
+    const source = rx.Observable.fromPromise(
+      this.slackWeb.conversations.open({users:player.id,return_im:true})
+          .then((res) => {
+            dm = res.channel.id;
+            return res.channel.id;
+        }).catch((err) => {
+          console.log(err);
+          // TODO: What to do if a DM could not be opened.
+        })
+    );
 
-    if (this.gameConfig.show_card_images==1) {
-      return ImageHelpers.createPlayerHandImage(this.playerHands[player.id])
-      .timeout(4000)
-      .flatMap(url => {
-        let message = {
-          as_user: true,
-          channel: dm
-        };
+    return source.flatMap(channelId => {
+      if (this.gameConfig.show_card_images==1) {
+        return ImageHelpers.createPlayerHandImage(this.playerHands[player.id])
+        .timeout(4000)
+        .flatMap(url => {
+          let message = {
+            as_user: true,
+            channel: dm
+          };
 
-        message.attachments = [{
-          title: `Your hand is:`,
-          fallback: this.playerHands[player.id],
-          text: this.playerHands[player.id],
-          color: 'good',
-          image_url: url,
-          channel: dm
-        }];
+          message.attachments = [{
+            title: `Your hand is:`,
+            fallback: this.playerHands[player.id],
+            text: this.playerHands[player.id],
+            color: 'good',
+            image_url: url,
+            channel: dm
+          }];
 
-        this.slackWeb.chat.postMessage(message).then((res)=>{this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);});
+          this.slackWeb.chat.postMessage(message).then((res)=>{this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);});
 
-        // NB: Since we don't have a callback for the message arriving, we're
-        // just going to wait a second before continuing.
-        return rx.Observable.timer(1000, this.scheduler);
-      })
-      .take(1)
-      .catch(() => {
-        console.error('Creating hand image timed out');
+          // NB: Since we don't have a callback for the message arriving, we're
+          // just going to wait a second before continuing.
+          return rx.Observable.timer(1000, this.scheduler);
+        })
+        .take(1)
+        .catch(() => {
+          console.error('Creating hand image timed out');
+          this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);
+          return rx.Observable.timer(1000, this.scheduler);
+        });
+      }
+      else {
         this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);
         return rx.Observable.timer(1000, this.scheduler);
-      });
-    }
-    else {
-      this.slackRTM.sendMessage(`Your hand is: ${this.playerHands[player.id]}`, dm);
-      return rx.Observable.timer(1000, this.scheduler);
-    }
+      }
+    });
   }
 
 
