@@ -20,11 +20,11 @@ class Bot {
 
     this.gameConfig = { 
       timeout: 60, 
-      maxplayers: 25, 
-      start_game_timeout: 20, 
+      maxplayers: 22, 
+      start_game_timeout: 4, 
       bots: 1,
       smallblind: 1,
-      initialstash: 100,
+      initialstash: 500,
       show_card_images: 1 
     };
 
@@ -224,7 +224,7 @@ class Bot {
 
     // Listen for messages directed at the bot containing 'quit game.'
     let quitGameDisp = messages.where(e => MessageHelpers.containsUserMention(e.text, this.slackRTM.activeUserId) &&
-      e.text.toLowerCase().match(/quit game/))
+      e.text.toLowerCase().match(/quit/))
       .take(1)
       .subscribe(e => {
         this.slackWeb.users.info({ user: e.user })

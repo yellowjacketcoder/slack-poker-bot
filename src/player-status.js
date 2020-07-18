@@ -17,7 +17,7 @@ class PlayerStatus {
   //
   // Returns nothing
   static displayHandStatus(slackWeb, slackRTM, channel, players, board, actingPlayer,
-    potManager, dealerButton, bigBlind, smallBlind, tableFormatter=`\`\`\``) {
+    potManager, dealerButton, bigBlind, smallBlind, tableFormatter=`\`\`\``, cardsRevealed) {
     let table = [];
 
     for (let idx = 0; idx < players.length; idx++) {
@@ -66,8 +66,12 @@ class PlayerStatus {
         potBreakdown += `Side Pot: $${amount}\n`;
       }
     }
-    
-    handStatus = `${handStatus}\n${potBreakdown}`;
+
+    let cardsRevealedText = `Cards Revealed So Far: ${cardsRevealed}`;
+    if (cardsRevealed.length == 0) {
+      cardsRevealedText = `No Cards Have Been Revealed`;
+    }
+    handStatus = `${handStatus}\n${potBreakdown}\n${cardsRevealedText}`;
     slackRTM.sendMessage(handStatus, channel);
   }
 }

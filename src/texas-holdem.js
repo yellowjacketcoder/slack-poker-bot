@@ -240,7 +240,7 @@ class TexasHoldem {
         this.players, this.board, player,
         this.potManager, this.dealerButton,
         this.bigBlindIdx, this.smallBlindIdx,
-        this.tableFormatter);
+        this.tableFormatter, this.board.toString());
 
       return rx.Observable.timer(timeToPause, this.scheduler).flatMap(() => {
         this.actingPlayer = player;
