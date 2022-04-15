@@ -1,6 +1,9 @@
 {
   "name": "slack-poker-bot",
   "version": "1.0.0",
+  "engines": {
+    "node": "16.14.2"
+  },
   "repository": "https://github.com/verveguy/slack-poker-bot",
   "scripts": {
     "start": "node src/main.js",
